@@ -6,11 +6,11 @@
 We are starting the backend for a multi-tenant SaaS stock management application.
 
 - **Tech Stack:** Node.js (v20+), Express.js, TypeScript (v5+) [cite: 474]
-- **Database:** MongoDB with Mongoose [cite: 409]
+- **Database:** PostgreSQL (v16+) with Prisma ORM [cite: 474]
 - **Rules:** Follow guidelines in `backend_structure.mdc`, `tech_stack_document.mdc`, and `cursor_project_rules.mdc`.
 
 **Prompt:**
-"Initialize a new Node.js project using TypeScript. Set up an Express.js server (`src/app.ts`)[cite: 404]. Install necessary core dependencies: `express`, `mongoose`, `dotenv`, `bcryptjs`, `jsonwebtoken`, `cors`, `typescript`, `@types/node`, `@types/express`, etc.[cite: 403]. Configure TypeScript (`tsconfig.json`) for strict mode and paths (`@/*`)[cite: 477]. Implement the basic directory structure as defined in `backend_structure.mdc` (src/api, src/domain, src/infrastructure, etc.). Setup ESLint and Prettier with recommended TypeScript configurations [cite: 405, 207-213]. Configure environment variable handling using `dotenv` [cite: 405, 247-251]. Setup basic Winston or Pino logging configured via environment variables[cite: 406]."
+"Initialize a new Node.js project using TypeScript. Set up an Express.js server (`src/app.ts`)[cite: 404]. Install necessary core dependencies: `express`, `@prisma/client`, `dotenv`, `bcryptjs`, `jsonwebtoken`, `cors`, `typescript`, `@types/node`, `@types/express`, etc.[cite: 403]. Configure TypeScript (`tsconfig.json`) for strict mode and paths (`@/*`)[cite: 477]. Implement the basic directory structure as defined in `backend_structure.mdc` (src/api, src/domain, src/infrastructure, etc.). Setup ESLint and Prettier with recommended TypeScript configurations [cite: 405, 207-213]. Configure environment variable handling using `dotenv` [cite: 405, 247-251]. Setup basic Winston or Pino logging configured via environment variables[cite: 406]."
 
 ---
 
@@ -27,17 +27,17 @@ We are starting the frontend for the SaaS application.
 
 ---
 
-## Task 0.3: Backend Database Connection
+## Task 0.3: Backend Database Setup
 
 **Context:**
-Connect the backend application to the MongoDB database.
+Set up the PostgreSQL database and Prisma ORM configuration.
 
-- **Database:** MongoDB [cite: 409]
-- **Library:** Mongoose [cite: 409]
-- **Rules:** Use environment variables for connection strings.
+- **Database:** PostgreSQL (v16+) [cite: 474]
+- **ORM:** Prisma [cite: 474]
+- **Rules:** Use environment variables for connection strings and follow Prisma best practices.
 
 **Prompt:**
-"Implement the MongoDB database connection logic in the backend application using Mongoose. The connection string should be loaded from environment variables (`MONGODB_URI`). Create a utility or service within the `src/infrastructure/database` directory to handle the connection and provide a Mongoose instance. Ensure the connection is established when the application starts[cite: 410]."
+"Initialize Prisma in the backend project using `npx prisma init`. Configure the PostgreSQL connection in `prisma/schema.prisma` using the `DATABASE_URL` environment variable. Create a singleton Prisma Client instance in `src/lib/prisma.ts` to be used throughout the application. Implement proper error handling and connection management. Ensure the Prisma Client is properly instantiated when the application starts[cite: 492]."
 
 ---
 
@@ -47,7 +47,7 @@ Connect the backend application to the MongoDB database.
 Set up a basic Continuous Integration pipeline.
 
 - **Platform:** GitHub Actions (or specify another if preferred)
-- **Goals:** Linting, Type Checking, Building
+- **Goals:** Linting, Type Checking, Building, Prisma Generation
 
 **Prompt:**
 "Create a basic CI workflow file (e.g., `.github/workflows/ci.yml`) for the backend repository. The workflow should trigger on pushes to `main` and `develop` branches and on pull requests targeting `develop`. It should include steps to:
@@ -55,8 +55,9 @@ Set up a basic Continuous Integration pipeline.
 1. Checkout code.
 2. Setup Node.js (v20+).
 3. Install dependencies (`npm ci` or `yarn install`).
-4. Run ESLint (`npm run lint` or `yarn lint`)[cite: 411].
-5. Run TypeScript compiler check (`npm run typecheck` or `yarn tsc --noEmit`)[cite: 411].
+4. Run Prisma generate (`npx prisma generate`).
+5. Run ESLint (`npm run lint` or `yarn lint`)[cite: 411].
+6. Run TypeScript compiler check (`npm run typecheck` or `yarn tsc --noEmit`)[cite: 411].
    Repeat this process for the frontend repository, adjusting steps as needed (e.g., build step `npm run build`)."
 
 ---

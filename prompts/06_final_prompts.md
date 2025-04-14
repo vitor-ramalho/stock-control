@@ -19,11 +19,11 @@ Address any known UI/UX issues, optimize performance bottlenecks, and enhance er
     - Optimize image loading.
 3.  **Backend Performance:**
     - Identify slow API endpoints using logging or monitoring tools.
-    - Analyze database query performance using `EXPLAIN` (or Mongoose equivalents) and add/optimize indexes where necessary[cite: 532].
+    - Analyze database query performance using PostgreSQL's `EXPLAIN ANALYZE` and optimize Prisma queries and indexes where necessary.
     - Implement caching strategies (e.g., using Redis) for frequently accessed, non-critical data if beneficial.
 4.  **Error Handling & Logging:**
     - Review error handling middleware and service-level error catching. Ensure user-friendly messages are sent to the frontend while detailed logs are kept on the backend.
-    - Enhance logging to include more context where needed for easier debugging[cite: 533]. Ensure logs include tenant context."
+    - Enhance logging to include more context where needed for easier debugging. Ensure logs include organization context."
 
 ---
 
@@ -43,7 +43,7 @@ Prepare the application for production deployment.
 2.  **Frontend Build:** Ensure the Next.js frontend builds correctly for production (`npm run build`). Configure static exports or server deployment as appropriate for your chosen hosting (e.g., Vercel handles this well).
 3.  **Environment Variables:** Define and securely manage all required production environment variables (Database URL, JWT Secret, API URLs, external service keys, etc.). Do _not_ commit secrets. Use the hosting provider's secrets management.
 4.  **CI/CD Pipeline:** Update the CI/CD pipeline (from Task 0.4) to include build steps for production images/artifacts and deployment steps to the chosen hosting providers (e.g., push Docker image to registry, deploy to Vercel, deploy backend container service). Trigger deployments on merges to the `main` branch.
-5.  **Database:** Ensure the production MongoDB Atlas cluster (or equivalent) is configured, accessible, and secured. Run database migrations as part of the deployment process.
+5.  **Database:** Ensure the production PostgreSQL database is configured, accessible, and secured. Run Prisma migrations as part of the deployment process using `npx prisma migrate deploy`.
 6.  **Infrastructure:** Configure hosting services (e.g., Vercel for frontend, AWS/Fly.io/Heroku for backend). Set up load balancing, SSL certificates, and domain names."
 
 ---

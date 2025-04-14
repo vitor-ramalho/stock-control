@@ -2,7 +2,6 @@
 description: 
 globs: 
 alwaysApply: true
-app_language: pt-BR
 ---
 # implementation_plan.mdc
 
@@ -10,179 +9,164 @@ app_language: pt-BR
 Develop a multi-tenant SaaS application for stock management targeted at general stores. The application should allow organizations (tenants) to manage products, track stock levels, manage clients, record sales, and handle user permissions. A backoffice interface for SaaS administration is also required.
 
 ## Technology Stack
--   **Frontend:** Next.js (TypeScript), Tailwind CSS, React Query/SWR
--   **Backend:** Node.js (TypeScript), Express.js
--   **Database:** MongoDB (using Mongoose)
--   **Authentication:** JWT
--   **Testing:** Jest (Unit & Integration), Supertest (Integration), Cypress/Playwright (E2E - Optional/Later Phase)
--   **Deployment:** Vercel (Frontend), AWS/Heroku/Fly.io (Backend), MongoDB Atlas (Database)
+-   **Frontend:** Next.js (TypeScript), Tailwind CSS, React Query/SWR [cite: 474]
+-   **Backend:** Node.js (TypeScript), Express.js [cite: 474]
+-   **Database:** **PostgreSQL (v16+) with Prisma ORM** [cite: 474]
+-   **Authentication:** JWT [cite: 474]
+-   **Testing:** Jest (Unit & Integration), Supertest (Integration), Cypress/Playwright (E2E - Optional/Later Phase) [cite: 474]
+-   **Deployment:** Vercel (Frontend), AWS/Heroku/Fly.io (Backend), Managed PostgreSQL Service (e.g., AWS RDS, Supabase) [cite: 474]
 
 ## Phases & Milestones
 
 ### Phase 0: Setup & Foundation (Sprint 1)
 
 1.  **Initialize Project Repositories:**
-    * Create separate Git repositories for frontend and backend (or a monorepo using Nx/Turborepo).
+    * Create separate Git repositories for frontend and backend (or a monorepo).
     * Setup `README.md`, `LICENSE`, `.gitignore`.
 2.  **Backend Setup:**
     * Initialize Node.js project (`npm init`).
-    * Install core dependencies: TypeScript, Express, Mongoose, dotenv, bcryptjs, jsonwebtoken, cors.
-    * Configure TypeScript (`tsconfig.json`).
+    * Install core dependencies: TypeScript, Express, **`@prisma/client`**, **`pg`**, dotenv, bcryptjs, jsonwebtoken, cors.
+    * Configure TypeScript (`tsconfig.json`)[cite: 477].
     * Setup basic Express server (`src/app.ts`).
-    * Implement basic directory structure (as per `backend_structure_document.mdc`).
-    * Setup ESLint and Prettier for code quality.
-    * Configure environment variables (`.env`).
-    * Setup basic logging (e.g., using Winston or Pino).
+    * Implement basic directory structure (as per `backend_structure_document.txt`, adjust for Prisma).
+    * Setup ESLint and Prettier.
+    * Configure environment variables (`.env`, especially `DATABASE_URL`).
+    * Setup basic logging (Winston or Pino)[cite: 474].
+    * Initialize Prisma (`npx prisma init --datasource-provider postgresql`)[cite: 492].
 3.  **Frontend Setup:**
-    * Initialize Next.js project (`npx create-next-app`).
-    * Install core dependencies: Tailwind CSS, Axios/fetch wrapper, state management (if needed beyond React Context/SWR).
-    * Configure TypeScript, ESLint, Prettier.
-    * Setup basic folder structure (e.g., `components`, `pages`, `lib`, `styles`).
-    * Configure Tailwind CSS (`tailwind.config.js`, `postcss.config.js`).
+    * Initialize Next.js project (`npx create-next-app`)[cite: 407].
+    * Install core dependencies: Tailwind CSS, Axios/fetch wrapper, React Query/SWR[cite: 527].
+    * Configure TypeScript, ESLint, Prettier[cite: 477].
+    * Setup basic folder structure[cite: 479].
+    * Configure Tailwind CSS[cite: 408].
+    * Setup `shadcn/ui`.
 4.  **Database Setup:**
-    * Create MongoDB Atlas cluster (or local setup for development).
-    * Define initial database connection logic in backend.
+    * Set up PostgreSQL instance (local via Docker [cite: 531] or cloud service).
+    * Define initial Prisma connection in `schema.prisma` using `DATABASE_URL`[cite: 492].
+    * Instantiate Prisma Client singleton for use in the backend[cite: 492].
 5.  **Tooling & CI/CD:**
-    * Setup basic CI pipeline (e.g., GitHub Actions) for linting and building.
-    * Configure Jest for backend testing.
+    * Setup basic CI pipeline (e.g., GitHub Actions) for linting, building, `prisma generate`[cite: 474].
+    * Configure Jest for backend testing[cite: 474].
 
 ### Phase 1: Core Tenant & User Management (Sprints 2-3)
 
-1.  **Backend - Models:**
-    * Define Mongoose models for `Plan`, `Organization`, `User` (as per `backend_structure_document.mdc`).
+1.  **Backend - Schema Definition:**
+    * Define models for `Plan`, `Organization`, `User`, and `Role` in `prisma/schema.prisma`. Define relations.
+    * Create initial database migration using `npx prisma migrate dev --name init`.
 2.  **Backend - Authentication:**
-    * Implement user registration endpoint (initial admin user for an organization).
-    * Implement user login endpoint (returning JWT).
-    * Implement password hashing (`bcryptjs`).
-    * Implement JWT generation and verification utilities.
-    * Implement `authMiddleware` and `tenantMiddleware`.
+    * Implement user registration endpoint (creating Org and User using Prisma Client, hash password in service).
+    * Implement user login endpoint (find user via Prisma, compare hash, return JWT).
+    * Implement password hashing (`bcryptjs`) in the service layer.
+    * Implement JWT generation/verification utilities.
+    * Implement `authMiddleware` and `tenantMiddleware` using Prisma Client for validation.
 3.  **Backend - Organization Management (for Backoffice):**
-    * CRUD API endpoints for managing `Organizations`.
-    * CRUD API endpoints for managing `Plans`.
-    * (Initially restrict access via environment variable or hardcoded admin).
+    * Implement CRUD API endpoints using Prisma Client for managing `Organizations` and `Plans`.
 4.  **Backend - User Management (within Tenant):**
-    * CRUD API endpoints for tenant admins to manage users within their organization (`/api/v1/organizations/{orgId}/users` or handled via tenant context).
-    * Implement role-based access control middleware (`restrictTo`).
+    * Implement CRUD API endpoints using Prisma Client for managing users within their organization (use `where` clauses for `organizationId`).
+    * Implement role-based access control middleware (`restrictTo`) [cite: 152-155, 501-506].
 5.  **Frontend - Authentication Pages:**
-    * Create Login page.
-    * Create Registration/Sign-up page (for new organizations).
-    * Implement API calls for login/registration.
-    * Implement token storage (e.g., HttpOnly cookies or secure local storage).
-    * Implement protected routes/redirects based on auth state.
+    * Create Login & Registration pages using shadcn/ui [cite: 293-310, 359-377].
+    * Implement API calls to backend auth endpoints.
+    * Implement token storage and protected routes.
 6.  **Frontend - Basic Layout:**
-    * Create main application layout (sidebar, header, content area).
+    * Create main application layout (Sidebar, Header).
     * Implement logout functionality.
 7.  **Frontend - User Management UI (Tenant):**
-    * Create page/components for listing, creating, editing users within the logged-in tenant's organization.
+    * Create page/components using `DataTable`and `Dialog`/`Form`to list, create, edit users, calling relevant backend APIs.
 8.  **Testing:**
-    * Unit tests for Auth service, User service, Organization service.
-    * Integration tests for Auth endpoints, User endpoints, Organization endpoints.
+    * Write Unit tests (mocking Prisma Client) and Integration tests (using PostgreSQL test database managed by Prisma Migrate) for Phase 1 backend features.
 
 ### Phase 2: Product & Stock Management (Sprints 4-5)
 
-1.  **Backend - Models:**
-    * Define Mongoose models for `Product`, `ProductCategory`, `StockMovement`.
+1.  **Backend - Schema Definition:**
+    * Define models for `Product`, `ProductCategory`, `StockMovement` in `prisma/schema.prisma`. Add relations and constraints (`@@unique`, `@@index`) [referencing structure from [cite: 92-102, 114-118] but using Prisma syntax].
+    * Create migration using `npx prisma migrate dev`.
 2.  **Backend - Product Module:**
-    * Implement CRUD API endpoints for `Products` (scoped by `tenantId`).
-    * Implement CRUD API endpoints for `ProductCategories` (scoped by `tenantId`).
-    * Include validation (unique SKU per tenant, price >= 0).
+    * Implement CRUD API endpoints for `Products` using Prisma Client (scoped by `organizationId`). Handle unique SKU constraint.
+    * Implement CRUD API endpoints for `ProductCategories` using Prisma Client (scoped by `organizationId`). Handle unique name constraint.
 3.  **Backend - Stock Management Logic:**
-    * Implement service logic to update `Product.quantity` upon relevant actions.
-    * Implement `StockMovement` creation whenever quantity changes (e.g., manual adjustment, sale, purchase).
-    * API endpoint for manual stock adjustments (e.g., initial stock count, corrections).
-    * API endpoint for viewing stock movement history for a product.
+    * Implement service logic (`StockService`) to update `Product.quantity` and create `StockMovement` records atomically using `prisma.$transaction`.
+    * Implement API endpoint for manual stock adjustments (`POST /api/v1/stock/adjustments`).
+    * Implement API endpoint for viewing stock movement history (`GET /api/v1/products/:productId/stock-history`) using Prisma Client.
 4.  **Frontend - Product Module UI:**
-    * Create page/components for listing products (with search/filter).
-    * Create forms/modals for adding/editing products.
+    * Create page/components using `DataTable`, `Dialog`/`Form` for listing, adding, editing products. Fetch data via React Query/SWR.
     * Create page/components for managing product categories.
-    * Display product details, including stock quantity and history.
+    * Display product details.
 5.  **Frontend - Stock Adjustment UI:**
-    * Implement UI for manual stock adjustments.
+    * Implement UI (`Dialog`) for manual stock adjustments, calling the backend API.
 6.  **Testing:**
-    * Unit tests for Product service, Stock logic.
-    * Integration tests for Product API endpoints, Stock Adjustment endpoint.
+    * Write Unit tests (mocking Prisma) and Integration tests (using PostgreSQL test DB) for Phase 2 backend features.
 
 ### Phase 3: Sales & Client Management (Sprints 6-7)
 
-1.  **Backend - Models:**
-    * Define Mongoose models for `Client`, `Sale`.
+1.  **Backend - Schema Definition:**
+    * Define models for `Client`, `Sale`, `SaleItem` in `prisma/schema.prisma`. Define relations and constraints [referencing structure frombut using Prisma syntax]. Use `Decimal` for currency.
+    * Create migration using `npx prisma migrate dev`.
 2.  **Backend - Client Module:**
-    * Implement CRUD API endpoints for `Clients` (scoped by `tenantId`).
+    * Implement CRUD API endpoints for `Clients` using Prisma Client (scoped by `organizationId`).
 3.  **Backend - Sales Module:**
-    * Implement API endpoint for creating a new `Sale`.
-    * Logic to decrease `Product.quantity` and create `StockMovement` records when a sale is completed.
-    * Handle calculations (subtotal, tax, total).
-    * Implement API endpoints for listing/viewing sales.
-    * Implement logic for updating sale status (e.g., draft -> completed).
+    * Implement API endpoint for creating `Sale` (`POST /api/v1/sales`). Generate `invoiceNumber` in service. Use `prisma.$transaction` to create `Sale`/`SaleItem`s and trigger stock updates (via `StockService` or directly) if status is 'COMPLETED'. Validate stock availability first.
+    * Implement API endpoints for listing/viewing/updating sales using Prisma Client.
 4.  **Frontend - Client Module UI:**
-    * Create page/components for listing, adding, editing clients.
+    * Create page/components using `DataTable`, `Dialog`/`Form` for managing clients.
 5.  **Frontend - Sales Module UI:**
-    * Create page/form for creating a new sale (selecting client, adding products, calculating totals).
-    * Create page for listing past sales.
-    * Display sale details.
+    * Create page/form for creating new sales (use `Combobox`/`Select` for clients/products).
+    * Create page for listing past sales using `DataTable`.
+    * Implement viewing sale details.
 6.  **Testing:**
-    * Unit tests for Client service, Sale service (including stock deduction logic).
-    * Integration tests for Client API endpoints, Sale API endpoints.
+    * Write Unit tests (mocking Prisma) and Integration tests (using PostgreSQL test DB) for Phase 3 backend features, verifying transactional logic for sales completion.
 
 ### Phase 4: Dashboard & Reporting (Sprint 8)
 
 1.  **Backend - Aggregation/Reporting Endpoints:**
-    * Develop API endpoints to fetch aggregated data for the dashboard (e.g., total sales today/week/month, low stock products, recent sales).
-    * Optimize queries for performance (use database aggregation pipelines).
+    * Develop API endpoints using Prisma Client (`aggregate`, `groupBy`, `count`, `sum`, `$queryRaw` if needed) to fetch aggregated dashboard data (sales summary, counts, low stock) scoped by `organizationId`.
 2.  **Frontend - Dashboard UI:**
-    * Create the main Dashboard page.
-    * Display key metrics (KPI cards).
-    * Show simple charts (e.g., sales trends, stock levels).
-    * List low-stock products requiring attention.
+    * Create Dashboard page using shadcn/ui (`StatCard`, `DataTable`) and Recharts (`LineChartComponent`).
+    * Fetch aggregated data from backend endpoints using React Query/SWR.
+    * Display KPIs, charts, and low-stock list.
 3.  **Testing:**
-    * Integration tests for dashboard/reporting endpoints.
+    * Write Integration tests (using PostgreSQL test DB) for dashboard/reporting endpoints, verifying aggregation results.
 
 ### Phase 5: Backoffice & SaaS Features (Sprints 9-10)
 
 1.  **Backend - Backoffice API:**
-    * Secure backoffice endpoints (e.g., require a specific 'superadmin' role).
-    * API endpoints for viewing/managing all organizations.
-    * API endpoints for viewing/managing all plans.
-    * API endpoints for potentially impersonating tenant admins (use with caution).
+    * Secure backoffice endpoints (CRUD for Orgs/Plans) using `restrictTo('superadmin')`.
+    * Implement API endpoints using Prisma Client.
 2.  **Frontend - Backoffice UI:**
-    * Create a separate section/layout for the backoffice.
-    * UI for managing organizations (activate/deactivate, view details).
-    * UI for managing subscription plans.
+    * Create a separate section/layout protected by role.
+    * Implement UI using `DataTable`, `Dialog`/`Form` for managing organizations and plans.
 3.  **Backend - Subscription/Billing Logic (Basic):**
-    * Add `subscriptionEndsAt` field to `Organization` model.
-    * Middleware/check to enforce plan limits (users, products) - can be basic initially.
-    * (Full payment gateway integration is a larger future step).
+    * Implement checks in relevant services (User create, Product create) using Prisma Client to fetch organization/plan details and compare current counts (`_count`) against plan limits (`plan.limits`). Throw errors if limits exceeded.
 4.  **Features - Stock Replenishment:**
-    * Implement backend logic and API for stock replenishment suggestions (based on min stock levels).
-    * Implement backend endpoint for importing stock updates from a spreadsheet (CSV/XLSX parser needed).
-    * Frontend UI for viewing replenishment suggestions.
-    * Frontend UI/modal for spreadsheet import.
+    * Implement backend API endpoint (`GET /api/v1/stock/replenishment-suggestions`) using Prisma Client to find products below `minStockLevel`.
+    * Implement backend endpoint (`POST /api/v1/stock/import`) using `multer` and spreadsheet parser (`xlsx`/`papaparse`). Use `StockService` (with Prisma transactions) to update imported quantities.
+    * Frontend UI for viewing suggestions (`DataTable`).
+    * Frontend UI (`Dialog`/`Form` with file input) for spreadsheet import.
 5.  **Testing:**
-    * Integration tests for backoffice API endpoints.
-    * Unit/Integration tests for replenishment logic and import.
+    * Write Integration tests (using PostgreSQL test DB) for backoffice APIs, subscription limit checks, and replenishment/import endpoints.
 
 ### Phase 6: Refinement, Deployment & Documentation (Sprint 11+)
 
 1.  **Refinement:**
     * Address UI/UX feedback.
-    * Optimize performance (database queries, API response times, frontend rendering).
+    * Optimize performance: Analyze Prisma query performance (using logs or `EXPLAIN ANALYZE`), add DB indexes (`@@index` in `schema.prisma`, migrate), optimize frontend rendering.
     * Enhance error handling and logging.
 2.  **Deployment:**
-    * Configure production environments (backend, frontend, database).
-    * Setup environment variables for production.
-    * Deploy frontend (e.g., Vercel).
-    * Deploy backend (e.g., AWS ECS, Heroku, Fly.io).
-    * Configure domain names and SSL.
+    * Configure production environments (backend, frontend, **PostgreSQL DB**, **pgBouncer**).
+    * Setup environment variables securely.
+    * Configure Dockerfile for backend (include `prisma generate`).
+    * Update CI/CD pipeline to run **`prisma migrate deploy`** against production DB and deploy frontend/backend.
+    * Configure hosting, domains, SSL.
 3.  **Documentation:**
-    * Finalize API documentation (e.g., using Swagger/OpenAPI).
-    * Write basic user guides.
-    * Update `README.md` files with setup and deployment instructions.
+    * Finalize API documentation (Swagger/OpenAPI).
+    * Write user guides.
+    * Update `README.md` files (include Prisma migration instructions).
 4.  **E2E Testing (Optional):**
-    * Implement E2E tests for critical user flows if deemed necessary.
+    * Implement E2E tests for critical user flows using Cypress/Playwright against a staging environment.
 
 ## Assumptions & Considerations
--   **MVP Focus:** Initial phases focus on core functionality. Advanced features (complex reporting, detailed analytics, integrations) are out of scope for the initial build.
--   **Billing:** Full subscription billing/payment gateway integration is complex and deferred beyond the initial phases outlined here. Phase 5 includes only basic structure.
--   **Spreadsheet Import:** Parsing logic needs careful implementation and error handling.
--   **Security:** Regularly review security practices (dependency updates, input validation, authentication/authorization checks).
--   **Scalability:** While designed with multi-tenancy, monitor performance and plan for scaling database and backend services as usage grows.
+-   **MVP Focus:** Initial phases focus on core functionality.
+-   **Billing:** Full payment gateway integration deferred.
+-   **Spreadsheet Import:** Requires robust parsing and error handling.
+-   **Security:** Ongoing review needed.
+-   **Scalability:** Monitor PostgreSQL performance; consider read replicas later. Use connection pooling (pgBouncer)[cite: 474].

@@ -2,8 +2,6 @@
 description: 
 globs: 
 alwaysApply: true
-
-app_language: pt-BR
 ---
 # Tech Stack Document
 
@@ -33,8 +31,8 @@ app_language: pt-BR
 - **Process Manager**: PM2 for production deployment
 
 ### Database
-- **Primary Database**: PostgreSQL 15+
-- **ORM/Query Builder**: Prisma or Drizzle ORM
+- **Primary Database**: PostgreSQL 16+
+- **ORM/Query Builder**: Prisma 
 - **Migrations**: Managed through ORM
 - **Connection Pooling**: pgBouncer for production
 

@@ -3,14 +3,14 @@
 ## Task 1.1: Backend - Define Core Models
 
 **Context:**
-Define the Mongoose database models for the core entities: Plans, Organizations (Tenants), and Users.
+Define the Prisma schema for the core entities: Plans, Organizations (Tenants), and Users.
 
-- **Database:** MongoDB with Mongoose
-- **Reference:** `backend_structure.mdc` section "Database Models" for `PlanModel`, `OrganizationModel`, `UserModel` [cite: 83-92, 119-123].
-- **Rules:** Follow schema details (fields, types, required, indexes, pre-save hooks for password hashing) specified in `backend_structure.mdc` [cite: 83-92, 119-123]. Implement models within `src/infrastructure/database/models/`.
+- **Database:** PostgreSQL with Prisma
+- **Reference:** `backend_structure.mdc` section "Database Models" for `Plan`, `Organization`, `User` [cite: 83-92, 119-123].
+- **Rules:** Follow schema details (fields, types, required, indexes, relations) specified in `backend_structure.mdc` [cite: 83-92, 119-123]. Implement models in `prisma/schema.prisma`.
 
 **Prompt:**
-"Implement the Mongoose schemas and models for `Plan`, `Organization`, and `User` within the `src/infrastructure/database/models/` directory. Ensure all fields, types, required attributes, default values, indexes, and relationships (`ref`) match the definitions provided in the `backend_structure.mdc` document [cite: 83-92, 119-123]. Implement the `pre('save')` middleware for the `User` model to hash passwords using `bcryptjs` before saving[cite: 85]. Implement the `comparePassword` method on the `User` schema[cite: 86]."
+"Implement the Prisma schema for `Plan`, `Organization`, and `User` models in `prisma/schema.prisma`. Ensure all fields, types, required attributes, default values, indexes, and relationships match the definitions provided in the `backend_structure.mdc` document [cite: 83-92, 119-123]. Include proper relations between models using Prisma's relation syntax. Add appropriate indexes for performance optimization. Use proper PostgreSQL types (e.g., `String`, `Boolean`, `DateTime`, `Json` for settings)."
 
 ---
 
@@ -22,7 +22,7 @@ Create the API endpoints and logic for user registration (initial tenant admin) 
 - **Endpoints:** `POST /api/v1/auth/register`, `POST /api/v1/auth/login`
 - **Logic:** Hashing passwords, generating JWTs, validating credentials.
 - **Reference:** `backend_structure.mdc` sections on Authentication, JWT, Auth Middleware. `cursor_project_rules.mdc` on Error Handling.
-- **Tech:** `bcryptjs`, `jsonwebtoken`.
+- **Tech:** `bcryptjs`, `jsonwebtoken`, Prisma Client.
 
 **Prompt:**
 "Implement the backend authentication logic and API endpoints.
@@ -31,18 +31,18 @@ Create the API endpoints and logic for user registration (initial tenant admin) 
 2.  Implement the registration endpoint (`POST /api/v1/auth/register`):
     - Accept organization name, admin first name, last name, email, and password.
     - Assume a default 'Plan' exists or create a basic one if needed.
-    - Create the `Organization` record.
+    - Use Prisma Client to create the `Organization` record.
     - Create the `User` record with the 'admin' role, hashing the password using `bcryptjs`.
     - Return the created user and organization data (excluding password).
 3.  Implement the login endpoint (`POST /api/v1/auth/login`):
     - Accept email and password.
-    - Find the user by email. Check across organizations if necessary or require organization context if login is tenant-specific.
+    - Use Prisma Client to find the user by email. Check across organizations if necessary or require organization context if login is tenant-specific.
     - Verify the password using `bcryptjs.compare`[cite: 86].
     - If valid, generate a JWT containing `userId`, `tenantId` (organizationId), and `role`[cite: 139]. Use environment variables for JWT secret and expiration [cite: 138, 247-251].
     - Return the JWT.
 4.  Create JWT utility functions (`generateToken`, `verifyToken`) in `src/infrastructure/auth/jwt.ts`.
-5.  Implement the core `authMiddleware` in `src/api/middleware/auth.middleware.ts` to verify the JWT from the `Authorization` header, attach user payload (`userId`, `tenantId`, `role`) to `req.user`, and verify user existence/activity.
-6.  Implement the `tenantMiddleware` in `src/api/middleware/tenant.middleware.ts` to run _after_ `authMiddleware`, verify the tenant from `req.user.tenantId` exists and is active, and attach tenant info to `req.tenant`.
+5.  Implement the core `authMiddleware` in `src/api/middleware/auth.middleware.ts` to verify the JWT from the `Authorization` header, attach user payload (`userId`, `tenantId`, `role`) to `req.user`, and verify user existence/activity using Prisma Client.
+6.  Implement the `tenantMiddleware` in `src/api/middleware/tenant.middleware.ts` to run _after_ `authMiddleware`, verify the tenant from `req.user.tenantId` exists and is active using Prisma Client, and attach tenant info to `req.tenant`.
 7.  Use custom error classes (`UnauthorizedError`, `ValidationError`, etc.) from `src/errors/index.ts`and ensure consistent API response format."
 
 ---
@@ -53,7 +53,7 @@ Create the API endpoints and logic for user registration (initial tenant admin) 
 Create basic CRUD APIs for managing Organizations and Plans, intended for backoffice use. Access control will be basic initially.
 
 - **Endpoints:** `/api/v1/backoffice/organizations`, `/api/v1/backoffice/plans`
-- **Models:** `OrganizationModel`, `PlanModel`
+- **Models:** `Organization`, `Plan`
 - **Reference:** REST principles from `backend_structure.mdc`.
 
 **Prompt:**
@@ -70,7 +70,8 @@ Create basic CRUD APIs for managing Organizations and Plans, intended for backof
     - `PATCH /api/v1/backoffice/plans/:id` (Update plan)
     - `DELETE /api/v1/backoffice/plans/:id` (Delete plan)
 3.  For now, protect these routes with a simple check (e.g., require a specific hardcoded API key in the header or a specific 'superadmin' role if already implemented in `authMiddleware`). Implement proper role-based access later.
-4.  Ensure responses follow the standard API format."
+4.  Ensure responses follow the standard API format.
+5.  Use Prisma Client for all database operations, including proper error handling for unique constraints and foreign key violations."
 
 ---
 
@@ -80,9 +81,9 @@ Create basic CRUD APIs for managing Organizations and Plans, intended for backof
 Allow tenant admins to manage users within their own organization.
 
 - **Endpoints:** `/api/v1/users` (implicitly scoped to the logged-in user's tenant via middleware)
-- **Models:** `UserModel`
+- **Models:** `User`
 - **Reference:** `backend_structure.mdc` User model, Auth Middleware, Tenant Middleware.
-- **Tech:** Mongoose
+- **Tech:** Prisma Client
 
 **Prompt:**
 "Implement the API for tenant administrators to manage users within their organization.
@@ -96,8 +97,9 @@ Allow tenant admins to manage users within their own organization.
     - `PATCH /api/v1/users/:userId` (Update User): Update user details (name, role, isActive). Requires 'admin' role. Do not allow password change here (separate endpoint later if needed).
     - `DELETE /api/v1/users/:userId` (Delete User): Deactivate or delete a user within the `tenantId`. Requires 'admin' role.
 4.  Implement the `restrictTo(...)` authorization middleware factory as shown in `backend_structure.mdc`and apply it to the routes based on the required roles mentioned above.
-5.  Ensure all database operations in the service/repository are filtered by `tenantId`.
-6.  Use standard API response format and error handling [cite: 40-42, 124-138]."
+5.  Ensure all database operations in the service use Prisma Client and are filtered by `tenantId`.
+6.  Use standard API response format and error handling [cite: 40-42, 124-138].
+7.  Handle Prisma-specific errors appropriately (e.g., unique constraint violations for email)."
 
 ---
 
@@ -179,14 +181,15 @@ Write unit and integration tests for the backend features developed in Phase 1.
 "Write unit and integration tests for the Phase 1 backend features:
 
 1.  **Unit Tests (Jest):**
-    - Test `AuthService`: Mock repositories/dependencies. Test registration logic (hashing), login logic (password comparison, token generation). Test edge cases and error handling.
-    - Test `UserService`: Mock repositories. Test user creation, retrieval, update, deletion logic, ensuring tenant scoping is considered. Test role checks if implemented in the service.
-    - Test `OrganizationService` / `PlanService`: Mock repositories. Test basic CRUD logic.
+    - Test `AuthService`: Mock Prisma Client. Test registration logic (hashing), login logic (password comparison, token generation). Test edge cases and error handling.
+    - Test `UserService`: Mock Prisma Client. Test user creation, retrieval, update, deletion logic, ensuring tenant scoping is considered. Test role checks if implemented in the service.
+    - Test `OrganizationService` / `PlanService`: Mock Prisma Client. Test basic CRUD logic.
     - Test JWT utilities (`generateToken`, `verifyToken`).
 2.  **Integration Tests (Jest + Supertest):**
     - Test Auth Endpoints (`/api/v1/auth/register`, `/api/v1/auth/login`): Use Supertest to make HTTP requests to the running app instance (connected to a test database). Verify successful registration/login, correct status codes, response formats, and error handling (e.g., invalid credentials, existing user). Seed necessary data (e.g., default plan) and clean up afterwards.
     - Test User Management Endpoints (`/api/v1/users`): Simulate requests with valid JWTs for different roles (admin, manager). Test creating, listing, getting, updating, and deleting users. Verify tenant isolation (a user from tenant A cannot manage users in tenant B). Test role restrictions (`restrictTo` middleware). Verify response formats and error handling (e.g., user not found, validation errors).
     - Test Backoffice Endpoints (`/api/v1/backoffice/...`): Test basic CRUD operations, ensuring the temporary access control works.
-3.  Ensure tests follow the structure and mocking strategies outlined in `backend_structure.mdc`."
+3.  Ensure tests follow the structure and mocking strategies outlined in `backend_structure.mdc`.
+4.  Use Prisma's test utilities for database operations in integration tests."
 
 ---
