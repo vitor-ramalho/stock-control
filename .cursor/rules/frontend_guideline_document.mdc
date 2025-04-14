@@ -1,0 +1,1277 @@
+---
+description: 
+globs: 
+alwaysApply: true
+app_language: pt-BR
+---
+# Frontend Guidelines Document
+
+## UI/UX Standards
+
+### Design System
+
+#### Color System
+```typescript
+// src/styles/theme.js
+export const colors = {
+  // Primary palette
+  primary: {
+    50: '#eef2ff',
+    100: '#e0e7ff',
+    200: '#c7d2fe',
+    300: '#a5b4fc',
+    400: '#818cf8',
+    500: '#6366f1', // Primary color
+    600: '#4f46e5',
+    700: '#4338ca',
+    800: '#3730a3',
+    900: '#312e81',
+    950: '#1e1b4b',
+  },
+  
+  // Secondary palette
+  secondary: {
+    50: '#f8fafc',
+    100: '#f1f5f9',
+    200: '#e2e8f0',
+    300: '#cbd5e1',
+    400: '#94a3b8',
+    500: '#64748b', // Secondary color
+    600: '#475569',
+    700: '#334155',
+    800: '#1e293b',
+    900: '#0f172a',
+    950: '#020617',
+  },
+  
+  // Accent palette
+  accent: {
+    50: '#f0fdfa',
+    100: '#ccfbf1',
+    200: '#99f6e4',
+    300: '#5eead4',
+    400: '#2dd4bf',
+    500: '#14b8a6', // Accent color
+    600: '#0891b2',
+    700: '#0e7490',
+    800: '#155e75',
+    900: '#164e63',
+    950: '#083344',
+  },
+  
+  // Semantic colors
+  success: {
+    50: '#f0fdf4',
+    100: '#dcfce7',
+    200: '#bbf7d0',
+    300: '#86efac',
+    400: '#4ade80',
+    500: '#22c55e', // Success color
+    600: '#16a34a',
+    700: '#15803d',
+    800: '#166534',
+    900: '#14532d',
+    950: '#052e16',
+  },
+  
+  error: {
+    50: '#fef2f2',
+    100: '#fee2e2',
+    200: '#fecaca',
+    300: '#fca5a5',
+    400: '#f87171',
+    500: '#ef4444', // Error color
+    600: '#dc2626',
+    700: '#b91c1c',
+    800: '#991b1b',
+    900: '#7f1d1d',
+    950: '#450a0a',
+  },
+  
+  warning: {
+    50: '#fffbeb',
+    100: '#fef3c7',
+    200: '#fde68a',
+    300: '#fcd34d',
+    400: '#fbbf24',
+    500: '#f59e0b', // Warning color
+    600: '#d97706',
+    700: '#b45309',
+    800: '#92400e',
+    900: '#78350f',
+    950: '#451a03',
+  },
+  
+  info: {
+    50: '#eff6ff',
+    100: '#dbeafe',
+    200: '#bfdbfe',
+    300: '#93c5fd',
+    400: '#60a5fa',
+    500: '#3b82f6', // Info color
+    600: '#2563eb',
+    700: '#1d4ed8',
+    800: '#1e40af',
+    900: '#1e3a8a',
+    950: '#172554',
+  },
+  
+  // Neutral colors
+  neutral: {
+    50: '#fafafa',
+    100: '#f5f5f5',
+    200: '#e5e5e5',
+    300: '#d4d4d4',
+    400: '#a3a3a3',
+    500: '#737373',
+    600: '#525252',
+    700: '#404040',
+    800: '#262626',
+    900: '#171717',
+    950: '#0a0a0a',
+  },
+};
+```
+
+#### Typography
+```css
+/* Global typography styles */
+:root {
+  /* Font families */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  
+  /* Font sizes */
+  --font-size-xs: 0.75rem;   /* 12px */
+  --font-size-sm: 0.875rem;  /* 14px */
+  --font-size-md: 1rem;      /* 16px */
+  --font-size-lg: 1.125rem;  /* 18px */
+  --font-size-xl: 1.25rem;   /* 20px */
+  --font-size-2xl: 1.5rem;   /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+  --font-size-4xl: 2.25rem;  /* 36px */
+  --font-size-5xl: 3rem;     /* 48px */
+  
+  /* Line heights */
+  --line-height-tight: 1.25;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
+  
+  /* Font weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+}
+```
+
+#### Spacing System
+```css
+:root {
+  --space-0: 0px;
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem;  /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem;    /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem;  /* 24px */
+  --space-8: 2rem;    /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem;   /* 48px */
+  --space-16: 4rem;   /* 64px */
+  --space-20: 5rem;   /* 80px */
+  --space-24: 6rem;   /* 96px */
+  --space-32: 8rem;   /* 128px */
+}
+```
+
+#### Shadow System
+```css
+:root {
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+}
+```
+
+#### Border Radius
+```css
+:root {
+  --radius-none: 0;
+  --radius-sm: 0.125rem; /* 2px */
+  --radius-md: 0.25rem;  /* 4px */
+  --radius-lg: 0.5rem;   /* 8px */
+  --radius-xl: 0.75rem;  /* 12px */
+  --radius-2xl: 1rem;    /* 16px */
+  --radius-3xl: 1.5rem;  /* 24px */
+  --radius-full: 9999px;
+}
+```
+
+### Component Guidelines
+
+#### Button Standards
+```tsx
+// src/components/ui/button.tsx
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary-500 text-white hover:bg-primary-600",
+        secondary: "bg-secondary-500 text-white hover:bg-secondary-600",
+        outline: "border border-input bg-transparent hover:bg-accent-100 hover:text-accent-900",
+        ghost: "hover:bg-primary-100 hover:text-primary-900",
+        link: "underline-offset-4 hover:underline text-primary-500",
+        danger: "bg-error-500 text-white hover:bg-error-600",
+        success: "bg-success-500 text-white hover:bg-success-600",
+      },
+      size: {
+        default: "h-10 py-2 px-4",
+        sm: "h-9 px-3",
+        lg: "h-11 px-8",
+        icon: "h-10 w-10",
+      },
+      fullWidth: {
+        true: "w-full",
+      }
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+      fullWidth: false,
+    },
+  }
+);
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, fullWidth, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? "div" : "button";
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, fullWidth, className }))}
+        ref={ref}
+        {...props}
+      />
+    );
+  }
+);
+Button.displayName = "Button";
+
+export { Button, buttonVariants };
+```
+
+#### Form Elements
+```tsx
+// src/components/ui/input.tsx
+import * as React from "react";
+import { cn } from "@/lib/utils";
+
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {
+  error?: boolean;
+}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, error, ...props }, ref) => {
+    return (
+      <input
+        className={cn(
+          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          error && "border-error-500 focus-visible:ring-error-500",
+          className
+        )}
+        ref={ref}
+        {...props}
+      />
+    );
+  }
+);
+Input.displayName = "Input";
+
+export { Input };
+```
+
+#### Card Component
+```tsx
+// src/components/ui/card.tsx
+import * as React from "react";
+import { cn } from "@/lib/utils";
+
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      className
+    )}
+    {...props}
+  />
+));
+Card.displayName = "Card";
+
+const CardHeader = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    {...props}
+  />
+));
+CardHeader.displayName = "CardHeader";
+
+const CardTitle = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h3
+    ref={ref}
+    className={cn("text-xl font-semibold leading-none tracking-tight", className)}
+    {...props}
+  />
+));
+CardTitle.displayName = "CardTitle";
+
+const CardDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <p
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+));
+CardDescription.displayName = "CardDescription";
+
+const CardContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+));
+CardContent.displayName = "CardContent";
+
+const CardFooter = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex items-center p-6 pt-0", className)}
+    {...props}
+  />
+));
+CardFooter.displayName = "CardFooter";
+
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+```
+
+#### Table Component
+```tsx
+// src/components/ui/data-table.tsx
+import React from "react";
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  getPaginationRowModel,
+  SortingState,
+  getSortedRowModel,
+  ColumnFiltersState,
+  getFilteredRowModel,
+} from "@tanstack/react-table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+interface DataTableProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  searchKey?: string;
+  searchPlaceholder?: string;
+}
+
+export function DataTable<TData, TValue>({
+  columns,
+  data,
+  searchKey,
+  searchPlaceholder = "Search...",
+}: DataTableProps<TData, TValue>) {
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
+    onColumnFiltersChange: setColumnFilters,
+    getFilteredRowModel: getFilteredRowModel(),
+    state: {
+      sorting,
+      columnFilters,
+    },
+  });
+
+  return (
+    <div>
+      {searchKey && (
+        <div className="flex items-center py-4">
+          <Input
+            placeholder={searchPlaceholder}
+            value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
+            onChange={(event) =>
+              table.getColumn(searchKey)?.setFilterValue(event.target.value)
+            }
+            className="max-w-sm"
+          />
+        </div>
+      )}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          Previous
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+        >
+          Next
+        </Button>
+      </div>
+    </div>
+  );
+}
+```
+
+### Layout Guidelines
+
+#### Page Layout Structure
+```tsx
+// src/app/layout.tsx
+import { Inter } from "next/font/google";
+import { Toaster } from "@/components/ui/toaster";
+import { Providers } from "@/components/providers";
+import { Sidebar } from "@/components/sidebar";
+import { Header } from "@/components/header";
+
+import "@/styles/globals.css";
+
+const inter = Inter({ subsets: ["latin"] });
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <Providers>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <div className="flex flex-col flex-1">
+              <Header />
+              <main className="flex-1 p-6">{children}</main>
+            </div>
+          </div>
+          <Toaster />
+        </Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+#### Dashboard Layout
+```tsx
+// src/app/(dashboard)/layout.tsx
+import { DashboardNav } from "@/components/dashboard-nav";
+import { UserAccountNav } from "@/components/user-account-nav";
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-40 border-b bg-background">
+        <div className="container flex h-16 items-center justify-between py-4">
+          <DashboardNav />
+          <UserAccountNav />
+        </div>
+      </header>
+      <div className="container flex-1 space-y-4 p-8 pt-6">
+        {children}
+      </div>
+    </div>
+  );
+}
+```
+
+#### Responsive Design Guidelines
+- Use Tailwind's responsive prefixes consistently: `sm:`, `md:`, `lg:`, `xl:`, `2xl:`
+- Mobile-first approach: style for mobile, then add responsive variants
+- Breakpoints follow Tailwind defaults:
+  - `sm`: 640px
+  - `md`: 768px
+  - `lg`: 1024px
+  - `xl`: 1280px
+  - `2xl`: 1536px
+
+```tsx
+// Example of responsive component
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+  {items.map((item) => (
+    <Card key={item.id}>
+      {/* Card content */}
+    </Card>
+  ))}
+</div>
+```
+
+### Data Visualization Standards
+
+#### Chart Components
+- Use Recharts for all chart visualizations
+- Maintain consistent color palettes across charts
+- Provide responsive behavior for all charts
+- Include proper accessibility attributes
+
+```tsx
+// src/components/charts/line-chart.tsx
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+interface TimeSeriesData {
+  date: string;
+  value: number;
+  [key: string]: any;
+}
+
+interface LineChartProps {
+  title: string;
+  data: TimeSeriesData[];
+  dataKey: string;
+  xAxisKey?: string;
+  color?: string;
+  height?: number;
+}
+
+export function LineChartComponent({
+  title,
+  data,
+  dataKey,
+  xAxisKey = "date",
+  color = "#6366f1",
+  height = 400,
+}: LineChartProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={height}>
+          <LineChart
+            data={data}
+            margin={{
+              top: 5,
+              right: 30,
+              left: 20,
+              bottom: 30,
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis 
+              dataKey={xAxisKey} 
+              tick={{ fill: "#64748b" }}
+              tickLine={{ stroke: "#94a3b8" }}
+              axisLine={{ stroke: "#cbd5e1" }}
+            />
+            <YAxis 
+              tick={{ fill: "#64748b" }}
+              tickLine={{ stroke: "#94a3b8" }}
+              axisLine={{ stroke: "#cbd5e1" }}
+            />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: "#ffffff", 
+                borderColor: "#e2e8f0", 
+                borderRadius: "0.5rem", 
+                boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)" 
+              }}
+            />
+            <Legend />
+            <Line 
+              type="monotone" 
+              dataKey={dataKey} 
+              stroke={color} 
+              activeDot={{ r: 8 }} 
+              strokeWidth={2}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+#### Dashboard Cards
+```tsx
+// src/components/cards/stat-card.tsx
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  description?: string;
+  trend?: {
+    value: number;
+    positive: boolean;
+  };
+  className?: string;
+}
+
+export function StatCard({
+  title,
+  value,
+  icon,
+  description,
+  trend,
+  className,
+}: StatCardProps) {
+  return (
+    <Card className={cn("overflow-hidden", className)}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <div className="h-4 w-4 text-muted-foreground">{icon}</div>
+      </CardHeader>
+      <CardContent># Frontend Guidelines Document (Continued)
+
+#### Dashboard Cards (continued)
+```tsx
+// src/components/cards/stat-card.tsx (continued)
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        {description && (
+          <p className="text-xs text-muted-foreground mt-1">{description}</p>
+        )}
+        {trend && (
+          <div className="flex items-center mt-2">
+            {trend.positive ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="w-4 h-4 text-success-500 mr-1"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="w-4 h-4 text-error-500 mr-1"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            )}
+            <span
+              className={cn(
+                "text-xs font-medium",
+                trend.positive ? "text-success-500" : "text-error-500"
+              )}
+            >
+              {Math.abs(trend.value)}%
+            </span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+### Form Guidelines
+
+#### Form Layout
+- Use consistent spacing between form elements
+- Group related fields with fieldsets
+- Provide clear labels for all form elements
+- Include validation messages inline
+- Always show error states visually
+
+```tsx
+// Example form layout
+<div className="space-y-6">
+  <div className="space-y-2">
+    <Label htmlFor="name">Name</Label>
+    <Input id="name" placeholder="Enter name" />
+  </div>
+  
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-2">
+      <Label htmlFor="email">Email</Label>
+      <Input id="email" type="email" placeholder="email@example.com" />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="phone">Phone</Label>
+      <Input id="phone" placeholder="(555) 555-5555" />
+    </div>
+  </div>
+  
+  <div className="flex justify-end">
+    <Button type="submit">Submit</Button>
+  </div>
+</div>
+```
+
+#### Form Component
+```tsx
+// src/components/ui/form.tsx
+import * as React from "react";
+import * as LabelPrimitive from "@radix-ui/react-label";
+import { Slot } from "@radix-ui/react-slot";
+import {
+  Controller,
+  ControllerProps,
+  FieldPath,
+  FieldValues,
+  FormProvider,
+  useFormContext,
+} from "react-hook-form";
+
+import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+
+const Form = FormProvider;
+
+type FormFieldContextValue<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+> = {
+  name: TName;
+};
+
+const FormFieldContext = React.createContext<FormFieldContextValue>(
+  {} as FormFieldContextValue
+);
+
+const FormField = <
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+>({
+  ...props
+}: ControllerProps<TFieldValues, TName>) => {
+  return (
+    <FormFieldContext.Provider value={{ name: props.name }}>
+      <Controller {...props} />
+    </FormFieldContext.Provider>
+  );
+};
+
+const useFormField = () => {
+  const fieldContext = React.useContext(FormFieldContext);
+  const itemContext = React.useContext(FormItemContext);
+  const { getFieldState, formState } = useFormContext();
+
+  const fieldState = getFieldState(fieldContext.name, formState);
+
+  if (!fieldContext) {
+    throw new Error("useFormField should be used within <FormField>");
+  }
+
+  const { id } = itemContext;
+
+  return {
+    id,
+    name: fieldContext.name,
+    formItemId: `${id}-form-item`,
+    formDescriptionId: `${id}-form-item-description`,
+    formMessageId: `${id}-form-item-message`,
+    ...fieldState,
+  };
+};
+
+type FormItemContextValue = {
+  id: string;
+};
+
+const FormItemContext = React.createContext<FormItemContextValue>(
+  {} as FormItemContextValue
+);
+
+const FormItem = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => {
+  const id = React.useId();
+
+  return (
+    <FormItemContext.Provider value={{ id }}>
+      <div ref={ref} className={cn("space-y-2", className)} {...props} />
+    </FormItemContext.Provider>
+  );
+});
+FormItem.displayName = "FormItem";
+
+const FormLabel = React.forwardRef<
+  React.ElementRef<typeof LabelPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
+>(({ className, ...props }, ref) => {
+  const { error, formItemId } = useFormField();
+
+  return (
+    <Label
+      ref={ref}
+      className={cn(error && "text-error-500", className)}
+      htmlFor={formItemId}
+      {...props}
+    />
+  );
+});
+FormLabel.displayName = "FormLabel";
+
+const FormControl = React.forwardRef<
+  React.ElementRef<typeof Slot>,
+  React.ComponentPropsWithoutRef<typeof Slot>
+>(({ ...props }, ref) => {
+  const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
+
+  return (
+    <Slot
+      ref={ref}
+      id={formItemId}
+      aria-describedby={
+        !error
+          ? `${formDescriptionId}`
+          : `${formDescriptionId} ${formMessageId}`
+      }
+      aria-invalid={!!error}
+      {...props}
+    />
+  );
+});
+FormControl.displayName = "FormControl";
+
+const FormDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => {
+  const { formDescriptionId } = useFormField();
+
+  return (
+    <p
+      ref={ref}
+      id={formDescriptionId}
+      className={cn("text-sm text-muted-foreground", className)}
+      {...props}
+    />
+  );
+});
+FormDescription.displayName = "FormDescription";
+
+const FormMessage = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, children, ...props }, ref) => {
+  const { error, formMessageId } = useFormField();
+  const body = error ? String(error?.message) : children;
+
+  if (!body) {
+    return null;
+  }
+
+  return (
+    <p
+      ref={ref}
+      id={formMessageId}
+      className={cn("text-sm font-medium text-error-500", className)}
+      {...props}
+    >
+      {body}
+    </p>
+  );
+});
+FormMessage.displayName = "FormMessage";
+
+export {
+  useFormField,
+  Form,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormDescription,
+  FormMessage,
+  FormField,
+};
+```
+
+### Dashboard Layout Examples
+
+#### Dashboard Overview Page
+```tsx
+// src/app/(dashboard)/dashboard/page.tsx
+import { Metadata } from "next";
+import { Activity, CreditCard, DollarSign, Users } from "lucide-react";
+
+import { StatCard } from "@/components/cards/stat-card";
+import { LineChartComponent } from "@/components/charts/line-chart";
+import { DataTable } from "@/components/ui/data-table";
+import { columns } from "./columns";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Stock Management Dashboard Overview",
+};
+
+async function getData() {
+  // This would typically fetch data from your API
+  return [
+    {
+      id: "1",
+      product: "Product A",
+      category: "Category X",
+      price: "$99.99",
+      stock: 125,
+      status: "In Stock",
+    },
+    // More data rows...
+  ];
+}
+
+export default async function DashboardPage() {
+  const data = await getData();
+
+  const salesData = [
+    { date: "Jan", value: 2400 },
+    { date: "Feb", value: 1398 },
+    { date: "Mar", value: 9800 },
+    { date: "Apr", value: 3908 },
+    { date: "May", value: 4800 },
+    { date: "Jun", value: 3800 },
+    { date: "Jul", value: 4300 },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Total Revenue"
+          value="$45,231.89"
+          icon={<DollarSign className="h-4 w-4" />}
+          description="Monthly revenue"
+          trend={{ value: 20.1, positive: true }}
+        />
+        <StatCard
+          title="Active Products"
+          value="412"
+          icon={<CreditCard className="h-4 w-4" />}
+          description="Total active products"
+          trend={{ value: 5.4, positive: true }}
+        />
+        <StatCard
+          title="Daily Sales"
+          value="$1,249.45"
+          icon={<Activity className="h-4 w-4" />}
+          description="Average daily sales"
+          trend={{ value: 3.2, positive: false }}
+        />
+        <StatCard
+          title="Active Clients"
+          value="573"
+          icon={<Users className="h-4 w-4" />}
+          description="Total registered clients"
+          trend={{ value: 12.2, positive: true }}
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <LineChartComponent
+          title="Monthly Sales"
+          data={salesData}
+          dataKey="value"
+        />
+        
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold">Low Stock Products</h3>
+          <DataTable columns={columns} data={data} searchKey="product" />
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+### Accessibility Guidelines
+
+#### Keyboard Navigation
+- Ensure all interactive elements are keyboard accessible
+- Use proper focus management
+- Implement proper tab ordering
+- Use focus indicators that meet WCAG contrast requirements
+
+#### Screen Reader Support
+- Use semantic HTML elements
+- Provide proper ARIA attributes where needed
+- Ensure all images have alt text
+- Handle aria-live regions for dynamic content
+
+#### Color and Contrast
+- Meet WCAG AA contrast requirements (minimum 4.5:1 for normal text)
+- Don't use color alone to convey information
+- Test with color blindness simulators
+- Provide sufficient contrast for interactive states
+
+## Code Quality Standards
+
+### File Structure
+- Follow consistent naming conventions
+- Group related components in directories
+- Use index files for cleaner imports
+- Separate UI components from business logic
+
+### Naming Conventions
+- Components: PascalCase (e.g., `Button.tsx`)
+- Utilities: camelCase (e.g., `formatDate.ts`)
+- Hooks: use `use` prefix (e.g., `useProducts.ts`)
+- Types/Interfaces: PascalCase with descriptive names (e.g., `ProductData.ts`)
+
+### Performance Considerations
+- Use React.memo for expensive components
+- Implement proper list virtualization for large data sets
+- Optimize images and assets
+- Use code splitting with dynamic imports
+- Implement proper state management to avoid unnecessary renders
+
+## Animation Standards
+
+### Transition Guidelines
+- Keep transitions short (150-300ms)
+- Use appropriate easing functions
+- Ensure transitions respect reduced motion preferences
+
+```tsx
+// Example transition component
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+
+interface FadeInProps {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}
+
+export function FadeIn({ children, className, delay = 0 }: FadeInProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.3,
+        delay,
+        ease: "easeOut",
+      }}
+      className={cn(className)}
+    >
+      {children}
+    </motion.div>
+  );
+}
+```
+
+### Loading States
+- Use consistent loading indicators
+- Implement skeleton screens for better user experience
+- Ensure loading states are accessible
+
+```tsx
+// src/components/ui/skeleton.tsx
+import { cn } from "@/lib/utils";
+
+function Skeleton({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("animate-pulse rounded-md bg-neutral-200", className)}
+      {...props}
+    />
+  );
+}
+
+export { Skeleton };
+```
+
+## Error Handling
+
+### Form Validation
+- Provide clear error messages
+- Display validation errors inline
+- Use consistent validation patterns
+- Support both client and server-side validation
+
+### Error States
+- Design clear error states for components
+- Implement fallback UI for error boundaries
+- Log errors appropriately
+- Provide user-friendly error messages
+
+## Internationalization
+
+### i18n Guidelines
+- Use Next.js built-in i18n support
+- Structure translation files consistently
+- Support RTL languages where applicable
+- Format dates, numbers, and currencies according to locale
+
+```tsx
+// Example usage in components
+import { useTranslation } from "next-i18next";
+
+export function LocalizedComponent() {
+  const { t } = useTranslation("common");
+  
+  return (
+    <div>
+      <h1>{t("greeting")}</h1>
+      <p>{t("welcome_message")}</p>
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+### Code Review Checklist
+- Meets design requirements
+- Follows component standards
+- Implements proper accessibility
+- Has appropriate error handling
+- Is properly internationalized
+- Maintains performance standards
+- Has proper test coverage
+
+### Testing Guidelines
+- Write unit tests for all components
+- Use React Testing Library for component tests
+- Implement end-to-end tests for critical flows
+- Test for accessibility issues
+
+### Documentation Guidelines
+- Document component props with JSDoc
+- Create Storybook stories for UI components
+- Keep README files updated
+- Document complex business logic
+
+This frontend guidelines document provides a comprehensive framework for maintaining consistent, high-quality frontend code across the Stock Management SaaS application.

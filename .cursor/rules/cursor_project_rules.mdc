@@ -1,0 +1,100 @@
+---
+description: 
+globs: 
+alwaysApply: true
+app_language: pt-BR
+---
+
+## 1. Overview
+This document outlines the global coding standards, conventions, and processes for the SaaS Stock Management project. Adhering to these rules ensures code consistency, maintainability, and collaboration efficiency. These rules apply to both the Next.js frontend and the Node.js backend repositories.
+
+## 2. Code Style & Formatting
+
+-   **Language:** Primarily TypeScript for both frontend and backend. Use modern JavaScript features (ES6+) where appropriate.
+-   **Formatting:** Use **Prettier** for automatic code formatting. Configuration files (`.prettierrc`, `.prettierignore`) should be present in the root of each project/repository. Run formatting before committing code (`npm run format` or editor integration).
+-   **Linting:** Use **ESLint** for identifying code quality issues and enforcing style rules. Configuration files (`.eslintrc.js`/`.eslintrc.json`) should be present and configured with appropriate plugins (e.g., `@typescript-eslint/eslint-plugin`, `eslint-plugin-react`, `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y` for frontend; `@typescript-eslint/eslint-plugin` for backend). Address all linting errors and warnings before creating pull requests (`npm run lint`).
+-   **Naming Conventions:**
+    * **Variables & Functions:** Use `camelCase`.
+    * **Classes & Interfaces (TypeScript):** Use `PascalCase`.
+    * **Constants:** Use `UPPER_SNAKE_CASE` for true constants (e.g., configuration values). Use `camelCase` for constants derived at runtime.
+    * **Files:** Use `kebab-case` (e.g., `user-service.ts`, `AuthButton.tsx`) or `PascalCase` for React components (e.g., `UserProfile.tsx`). Be consistent within each project.
+    * **API Endpoints:** Follow RESTful conventions outlined in `backend_structure_document.mdc`.
+-   **Comments:** Write clear and concise comments where necessary to explain complex logic, assumptions, or intent. Avoid commenting obvious code. Use JSDoc/TSDoc syntax for functions and classes where appropriate, especially in shared modules or services.
+
+## 3. TypeScript Usage
+
+-   **Strict Mode:** Enable `strict` mode in `tsconfig.json`. Address strictness errors (e.g., `strictNullChecks`, `noImplicitAny`).
+-   **Typing:** Provide explicit types for function parameters, return values, and variables where type inference is not obvious or sufficient. Use interfaces (`interface`) or type aliases (`type`) for defining complex object shapes. Prefer interfaces for defining the shape of objects or classes, and type aliases for more complex types like unions or intersections.
+-   **`any` Type:** Avoid using `any`. If necessary, prefer `unknown` and perform type checks. Use `any` only as a last resort with a clear justification comment.
+-   **Non-null Assertion Operator (`!`):** Avoid using the non-null assertion operator (`!`) unless you are absolutely certain a value cannot be `null` or `undefined` and TypeScript's inference is insufficient. Prefer explicit checks or default values.
+
+## 4. Version Control (Git)
+
+-   **Branching Strategy:** Use a Gitflow-like strategy:
+    * `main` (or `master`): Represents production-ready code. Only merge from `develop` during releases.
+    * `develop`: Integration branch for completed features. Represents the next release candidate.
+    * `feature/your-feature-name`: Branch off `develop` for new features or tasks (e.g., `feature/add-product-module`).
+    * `fix/issue-description`: Branch off `develop` (or `main` for hotfixes) for bug fixes.
+    * `release/version-number`: Branched from `develop` when preparing for a release.
+    * `hotfix/issue-description`: Branched from `main` for critical production bug fixes, then merged back into both `main` and `develop`.
+-   **Commit Messages:** Follow the **Conventional Commits** specification (https://www.conventionalcommits.org/). This aids in automated changelog generation and semantic versioning.
+    * Format: `<type>(<scope>): <subject>`
+    * Examples:
+        * `feat(products): add endpoint for creating products`
+        * `fix(auth): correct password hashing logic`
+        * `docs(readme): update setup instructions`
+        * `style(ui): adjust button padding`
+        * `refactor(service): improve query performance`
+        * `test(api): add integration tests for sales endpoint`
+        * `chore(deps): update eslint configuration`
+-   **Pull Requests (PRs):**
+    * Create PRs from `feature/*` or `fix/*` branches into `develop`.
+    * PR titles should be descriptive.
+    * PR descriptions should explain the changes, link to relevant issues (if any), and provide testing instructions or notes for reviewers.
+    * Ensure code builds, lints, and passes tests before marking a PR as ready for review.
+-   **Merging:** Use squash merges or rebase merges when merging feature branches into `develop` to keep the history clean. `develop` into `main` should use a merge commit.
+
+## 5. Code Reviews
+
+-   **Requirement:** All code merged into `develop` and `main` must be reviewed by at least one other team member.
+-   **Focus:** Reviews should focus on correctness, design patterns, potential bugs, adherence to standards, security, performance, and readability.
+-   **Process:** Use the platform's PR review tools (e.g., GitHub, GitLab). Provide constructive feedback and suggestions. The author is responsible for addressing feedback before merging.
+
+## 6. Dependency Management
+
+-   **Package Manager:** Use `npm` or `yarn` consistently within each project. Use `package-lock.json` or `yarn.lock` to ensure deterministic builds.
+-   **Adding Dependencies:** Carefully consider adding new dependencies. Evaluate their maintenance status, security vulnerabilities, and bundle size impact (for frontend).
+-   **Updating Dependencies:** Regularly update dependencies to patch security vulnerabilities and benefit from improvements. Use tools like `npm outdated` or Dependabot. Test thoroughly after updates.
+
+## 7. Environment Variables
+
+-   **Configuration:** Do **not** commit sensitive information (API keys, secrets, passwords) directly into the codebase. Use environment variables.
+-   **`.env` Files:** Use `.env` files for local development. Provide a `.env.example` file in the repository listing required variables with placeholder values. Add `.env` to `.gitignore`.
+-   **Loading:** Use libraries like `dotenv` (Node.js) or Next.js built-in environment variable support.
+-   **Naming:** Use `UPPER_SNAKE_CASE` for environment variable names (e.g., `DATABASE_URL`, `JWT_SECRET`).
+
+## 8. Testing
+
+-   **Requirement:** Write tests for new features and bug fixes according to the Testing Strategy (`backend_structure_document.mdc`).
+-   **Running Tests:** Ensure all tests pass before creating PRs. CI pipeline should run tests automatically.
+-   **Test Clarity:** Write clear and descriptive test names (`it('should return 401 if user is not authenticated')`). Tests should be easy to understand and maintain.
+
+## 9. Documentation
+
+-   **README:** Maintain up-to-date `README.md` files in each repository root, explaining the project purpose, setup instructions, running tests, and deployment steps.
+-   **API Documentation:** Generate or maintain API documentation (e.g., using Swagger/OpenAPI) for the backend. Keep it synchronized with the code.
+-   **Code Comments:** Use comments effectively as described in Section 2.
+
+## 10. Error Handling
+
+-   **Consistency:** Follow the error handling patterns defined in `backend_structure_document.mdc`. Use custom error classes and the error middleware.
+-   **User Experience:** Provide meaningful error messages to the frontend. Avoid exposing sensitive stack traces or internal details in production responses.
+-   **Logging:** Log errors effectively on the backend for debugging purposes.
+
+## 11. Security
+
+-   **Input Validation:** Validate all incoming data (API request bodies, query parameters, user input) on the backend.
+-   **Output Encoding:** Prevent XSS attacks by properly encoding output in the frontend. Frameworks like React help, but be mindful when using `dangerouslySetInnerHTML`.
+-   **Authentication & Authorization:** Implement robust checks as defined in `backend_structure_document.mdc`.
+-   **Dependencies:** Keep dependencies updated to avoid known vulnerabilities.
+-   **Secrets Management:** Handle secrets securely using environment variables or dedicated secret management services.

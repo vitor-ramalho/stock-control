@@ -1,0 +1,299 @@
+---
+description: 
+globs: 
+alwaysApply: true
+app_language: pt-BR
+---
+# App Flow Document
+
+## User Journeys & Application Workflows
+
+This document outlines the key user journeys and application workflows for the Stock Management SaaS platform.
+
+## Authentication Flow
+
+### Sign Up Process
+1. Organization admin visits landing page
+2. Admin selects "Sign Up" and enters organization details:
+   - Organization name
+   - Admin email
+   - Password
+   - Select subscription plan
+3. System creates new organization with tenant ID
+4. Admin receives welcome email with verification link
+5. First login prompts for additional organization details
+
+### Login Process
+1. User visits login page
+2. Enters email and password
+3. System validates credentials against tenant database
+4. If valid, generates JWT with user permissions and tenant ID
+5. Redirects to dashboard
+6. If invalid, shows error message
+
+### Password Recovery
+1. User clicks "Forgot Password"
+2. Enters email address
+3. System sends reset link if email exists
+4. User sets new password via secure link
+
+### User Invitation Flow
+1. Organization admin invites user via email
+2. System generates temporary access link
+3. New user sets password and completes profile
+4. System assigns predefined role
+
+## Dashboard Flow
+
+### Main Dashboard
+1. User logs in and lands on dashboard
+2. Dashboard displays:
+   - Stock overview (low stock alerts, total products)
+   - Recent sales summary
+   - Sales trends (daily/weekly/monthly)
+   - Top selling products
+   - Pending actions (approvals, orders to fulfill)
+
+### Analytics Dashboard
+1. User navigates to analytics section
+2. System presents filters for date range, product categories
+3. Displays visualizations:
+   - Sales performance charts
+   - Inventory turnover rates
+   - Revenue analysis
+   - Profit margins
+
+## Product Management Flow
+
+### Adding New Products
+1. User navigates to Products module
+2. Selects "Add New Product"
+3. Completes product form:
+   - SKU, name, description
+   - Category
+   - Cost and selling price
+   - Tax information
+   - Initial stock level
+   - Minimum stock threshold
+4. Submits form
+5. System validates input
+6. Creates product in database
+7. Initializes inventory record
+
+### Bulk Product Import
+1. User selects "Import Products"
+2. Downloads template spreadsheet
+3. Fills in product data
+4. Uploads completed spreadsheet
+5. System validates data
+6. Displays validation results with errors
+7. User confirms import
+8. System creates products and inventory records
+
+### Editing Products
+1. User finds product via search or browse
+2. Selects product to edit
+3. Modifies details
+4. Saves changes
+5. System updates product information
+6. Logs change history
+
+## Inventory Management Flow
+
+### Stock Adjustment
+1. User navigates to Inventory module
+2. Selects product for adjustment
+3. Enters new quantity or adjustment amount
+4. Provides reason for adjustment
+5. Submits change
+6. System updates inventory
+7. Creates stock movement record
+
+### Stock Replenishment
+1. User identifies low stock items
+2. Selects "Replenish Stock"
+3. Either:
+   - Enters quantities manually
+   - Uploads spreadsheet with replenishment data
+4. Reviews and confirms
+5. System updates inventory levels
+6. Creates stock movement records
+
+### Low Stock Alerts
+1. System runs scheduled job to check inventory levels
+2. Identifies products below minimum threshold
+3. Generates alerts in dashboard
+4. Sends email notification to designated users
+
+## Sales Process Flow
+
+### Creating a Sale
+1. User navigates to Sales module
+2. Selects "New Sale"
+3. Searches for and selects client (or creates new)
+4. Adds products to sale:
+   - Searches product catalog
+   - Selects product
+   - Enters quantity
+   - System calculates price with taxes
+5. Adjusts discounts if needed
+6. Reviews sale details
+7. Finalizes sale
+8. System:
+   - Creates sale record
+   - Reduces inventory quantities
+   - Creates stock movement records
+   - Updates sales statistics
+
+### Sale Returns Process
+1. User locates original sale
+2. Selects "Process Return"
+3. Selects items being returned and quantities
+4. Indicates reason for return
+5. Processes return
+6. System:
+   - Creates return record
+   - Adjusts inventory levels
+   - Updates sales statistics
+
+## Client Management Flow
+
+### Adding New Clients
+1. User navigates to Clients module
+2. Selects "Add New Client"
+3. Enters client details:
+   - Name/Company
+   - Contact information
+   - Address
+   - Payment terms
+4. Saves client record
+
+### Client History View
+1. User searches for client
+2. Views client profile
+3. Accesses tabs for:
+   - Purchase history
+   - Outstanding balances
+   - Contact information
+   - Notes/comments
+
+## Organization Management Flow
+
+### User Management
+1. Admin navigates to Organization module
+2. Selects "Users" section
+3. Views existing users
+4. Can add new users:
+   - Enter email and name
+   - Assign role/permissions
+   - Send invitation
+5. Can edit existing users:
+   - Change role
+   - Activate/deactivate account
+
+### Role & Permission Management
+1. Admin navigates to "Roles & Permissions"
+2. Views existing roles
+3. Can create new roles:
+   - Name role
+   - Select permissions
+   - Set description
+4. Can edit existing roles:
+   - Add/remove permissions
+   - Rename
+   - Set as default for new users
+
+### Subscription & Billing
+1. Admin navigates to "Subscription"
+2. Views current plan details
+3. Can upgrade/downgrade plan
+4. Access billing history
+5. Update payment method
+
+## Report Generation Flow
+
+### Standard Reports
+1. User navigates to Reports module
+2. Selects report type:
+   - Sales summary
+   - Inventory valuation
+   - Product performance
+   - Client purchase history
+3. Sets parameters (date range, categories, etc.)
+4. Generates report
+5. Views on-screen or exports (PDF, Excel)
+
+### Custom Reports
+1. User selects "Custom Report"
+2. Selects data fields to include
+3. Sets filters and grouping options
+4. Previews report
+5. Saves report configuration for future use
+6. Exports if needed
+
+## Data Export/Import Flow
+
+### Data Export
+1. User navigates to relevant module
+2. Selects "Export Data"
+3. Chooses format (CSV, Excel)
+4. Sets filters if needed
+5. Initiates export
+6. Downloads file
+
+### Data Import
+1. User selects "Import Data"
+2. Chooses data type (products, clients, etc.)
+3. Downloads template
+4. Fills template with data
+5. Uploads completed file
+6. System validates data
+7. Shows preview with validation results
+8. User confirms import
+9. System processes data and creates records
+
+## System Notifications Flow
+
+### Alert Types
+- Low stock notifications
+- New user invitations
+- Completed imports/exports
+- System updates
+
+### Notification Delivery
+1. System generates notification
+2. Stores in notification center
+3. Displays count in UI header
+4. Delivers via selected channels:
+   - In-app notification
+   - Email
+   - Dashboard alerts
+
+## Error Handling Flow
+
+### Validation Errors
+1. User submits form with invalid data
+2. System validates input
+3. Displays specific error messages next to fields
+4. Preserves valid input data
+5. User corrects errors and resubmits
+
+### System Errors
+1. Application encounters error
+2. Logs detailed error for debugging
+3. Shows user-friendly message
+4. Provides recovery options where possible
+
+## Mobile-Specific Flows
+
+### Mobile Inventory Check
+1. User logs in via mobile device
+2. Scans product barcode
+3. Views current inventory level
+4. Can adjust quantities directly
+
+### Mobile Sales Entry
+1. User creates new sale on mobile
+2. Scans products or selects from list
+3. Completes sale with simplified flow
+4. Syncs with central database

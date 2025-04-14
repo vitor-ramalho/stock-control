@@ -1,0 +1,1528 @@
+---
+description: 
+globs: 
+alwaysApply: true
+app_language: pt-BR
+---
+# Backend Structure Document
+
+## API Architecture
+
+### RESTful API Design Principles
+
+#### Resource Naming Conventions
+- Use plural nouns for resource collections (e.g., `/products`, `/orders`)
+- Use hierarchical structure for nested resources (e.g., `/organizations/{orgId}/users`)
+- Use hyphens (`-`) for multi-word resource names (e.g., `/product-categories`)
+- Use lowercase for all URL paths
+
+#### HTTP Methods Usage
+- `GET`: Retrieve resources (read-only, idempotent)
+- `POST`: Create new resources or trigger operations
+- `PUT`: Replace resources completely (idempotent)
+- `PATCH`: Partial updates to resources
+- `DELETE`: Remove resources
+
+#### Status Codes
+- `200 OK`: Successful request
+- `201 Created`: Resource created successfully
+- `204 No Content`: Successful request with no response body
+- `400 Bad Request`: Invalid request parameters
+- `401 Unauthorized`: Authentication required
+- `403 Forbidden`: Permission denied
+- `404 Not Found`: Resource not found
+- `409 Conflict`: Request conflicts with current state
+- `422 Unprocessable Entity`: Validation errors
+- `429 Too Many Requests`: Rate limit exceeded
+- `500 Internal Server Error`: Server-side error
+
+#### Response Format
+All API responses should follow a consistent format:
+
+```json
+{
+  "data": {}, // Main response data (object or array)
+  "meta": {   // Metadata for pagination, filtering, etc.
+    "pagination": {
+      "page": 1,
+      "perPage": 10,
+      "total": 100,
+      "totalPages": 10
+    }
+  },
+  "error": null // Error details when applicable
+}
+```
+
+Error responses should be structured as:
+
+```json
+{
+  "data": null,
+  "meta": {},
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "The request contains invalid parameters",
+    "details": [
+      {
+        "field": "email",
+        "message": "Email is required"
+      }
+    ]
+  }
+}
+```
+
+### API Versioning
+- Include API version in the URL path: `/api/v1/resources`
+- Support at least one previous version during transitions
+- Document deprecation timelines for older versions
+
+### Multi-tenancy Implementation
+
+#### Tenant Identification
+- Include `tenantId` in the authentication token
+- Validate tenant access on every request
+- Store tenant information in the request context
+
+#### Database Schema
+- Include `tenantId` in all relevant database tables
+- Create database indexes on `tenantId` columns for performance
+- Implement automatic tenant filtering in data access layer
+
+#### Tenant Isolation
+- Implement middleware for tenant context validation
+- Ensure queries are always scoped to the current tenant
+- Prevent tenant data leakage through proper authorization checks
+
+Example tenant middleware:
+
+```typescript
+// src/middleware/tenant.middleware.ts
+import { Request, Response, NextFunction } from 'express';
+import { UnauthorizedError } from '../errors';
+import { TenantService } from '../services/tenant.service';
+
+export async function tenantMiddleware(req: Request, res: Response, next: NextFunction) {
+  try {
+    // Extract tenantId from the authenticated user
+    const { tenantId } = req.user;
+    
+    if (!tenantId) {
+      throw new UnauthorizedError('Tenant information missing');
+    }
+    
+    // Verify tenant exists and is active
+    const tenant = await TenantService.getTenantById(tenantId);
+    
+    if (!tenant || !tenant.isActive) {
+      throw new UnauthorizedError('Invalid or inactive tenant');
+    }
+    
+    // Attach tenant to request context
+    req.tenant = tenant;
+    
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+```
+
+## Application Layers
+
+### Directory Structure
+```
+src/
+├── config/               # Configuration files
+├── api/                  # API endpoint definitions
+│   ├── routes/           # Route definitions
+│   ├── controllers/      # Request handlers
+│   ├── middleware/       # API middleware
+│   ├── validators/       # Request validation
+│   └── serializers/      # Response formatting
+├── domain/               # Business logic
+│   ├── entities/         # Domain entities & types
+│   ├── repositories/     # Data access interfaces
+│   ├── services/         # Business services
+│   └── events/           # Domain events
+├── infrastructure/       # External implementations
+│   ├── database/         # Database access
+│   │   ├── models/       # Database models
+│   │   ├── migrations/   # DB migrations
+│   │   ├── seeders/      # DB seed data
+│   │   └── repositories/ # Repository implementations
+│   ├── auth/             # Authentication providers
+│   ├── storage/          # File storage providers
+│   ├── email/            # Email service providers
+│   └── queue/            # Message queue integrations
+├── utils/                # Shared utilities
+├── types/                # TypeScript type definitions
+├── errors/               # Custom error classes
+└── app.ts                # Application entry point
+```
+
+### Clean Architecture Layers
+
+#### 1. API Layer
+- Handles HTTP requests and responses
+- Validates input data
+- Maps domain errors to HTTP responses
+- Controls serialization of response data
+- No business logic in controllers
+
+```typescript
+// src/api/controllers/product.controller.ts
+import { Request, Response, NextFunction } from 'express';
+import { ProductService } from '../../domain/services/product.service';
+import { ProductSerializer } from '../serializers/product.serializer';
+import { CreateProductDto, UpdateProductDto } from '../validators/product.validator';
+
+export class ProductController {
+  static async getProducts(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { tenantId } = req.tenant;
+      const { page = 1, limit = 10, search } = req.query;
+      
+      const products = await ProductService.getProducts(tenantId, {
+        page: Number(page),
+        limit: Number(limit),
+        search: search as string
+      });
+      
+      return res.json({
+        data: ProductSerializer.serializeMany(products.items),
+        meta: {
+          pagination: {
+            page: products.page,
+            perPage: products.limit,
+            total: products.total,
+            totalPages: Math.ceil(products.total / products.limit)
+          }
+        },
+        error: null
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  static async createProduct(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { tenantId } = req.tenant;
+      const productData: CreateProductDto = req.body;
+      
+      const product = await ProductService.createProduct(tenantId, productData);
+      
+      return res.status(201).json({
+        data: ProductSerializer.serialize(product),
+        meta: {},
+        error: null
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+```
+
+#### 2. Domain Layer
+- Contains business logic and rules
+- Independent of external frameworks
+- Defines interfaces for data access
+- Contains service objects for orchestrating operations
+
+```typescript
+// src/domain/services/product.service.ts
+import { Product } from '../entities/product.entity';
+import { ProductRepository } from '../repositories/product.repository';
+import { ProductNotFoundException, ValidationError } from '../../errors';
+
+export class ProductService {
+  static async getProducts(tenantId: string, options: any) {
+    return await ProductRepository.findMany(tenantId, options);
+  }
+  
+  static async getProductById(tenantId: string, productId: string) {
+    const product = await ProductRepository.findById(tenantId, productId);
+    
+    if (!product) {
+      throw new ProductNotFoundException(`Product with ID ${productId} not found`);
+    }
+    
+    return product;
+  }
+  
+  static async createProduct(tenantId: string, productData: Partial<Product>) {
+    // Business validation logic
+    if (productData.price && productData.price < 0) {
+      throw new ValidationError('Product price cannot be negative');
+    }
+    
+    // Create product
+    const product = await ProductRepository.create(tenantId, {
+      ...productData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    
+    return product;
+  }
+}
+```
+
+#### 3. Infrastructure Layer
+- Implements interfaces defined in domain layer
+- Handles external dependencies (database, file storage, email)
+- Contains specific framework implementations
+- Responsible for data persistence
+
+```typescript
+// src/infrastructure/database/repositories/product.repository.impl.ts
+import { Product } from '../../../domain/entities/product.entity';
+import { ProductRepository } from '../../../domain/repositories/product.repository';
+import { ProductModel } from '../models/product.model';
+
+export class ProductRepositoryImpl implements ProductRepository {
+  async findMany(tenantId: string, options: any) {
+    const { page = 1, limit = 10, search } = options;
+    const skip = (page - 1) * limit;
+    
+    const query: any = { tenantId };
+    
+    if (search) {
+      query.name = { $regex: search, $options: 'i' };
+    }
+    
+    const [items, total] = await Promise.all([
+      ProductModel.find(query)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean(),
+      ProductModel.countDocuments(query)
+    ]);
+    
+    return {
+      items,
+      page,
+      limit,
+      total
+    };
+  }
+  
+  async findById(tenantId: string, id: string) {
+    return await ProductModel.findOne({
+      _id: id,
+      tenantId
+    }).lean();
+  }
+  
+  async create(tenantId: string, productData: Partial<Product>) {
+    const product = new ProductModel({
+      ...productData,
+      tenantId
+    });
+    
+    await product.save();
+    return product.toObject();
+  }
+}
+```
+
+## Database Structure
+
+### Database Models
+
+#### User Model
+```typescript
+// src/infrastructure/database/models/user.model.ts
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+
+const userSchema = new mongoose.Schema({
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true,
+    index: true
+  },
+  firstName: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  lastName: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 8
+  },
+  role: {
+    type: String,
+    enum: ['admin', 'manager', 'employee'],
+    default: 'employee'
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  lastLogin: {
+    type: Date
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Middleware to hash password before saving
+userSchema.pre('save', async function(next) {
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
+  this.updatedAt = new Date();
+  next();
+});
+
+// Method to compare passwords
+userSchema.methods.comparePassword = async function(password: string) {
+  return await bcrypt.compare(password, this.password);
+};
+
+export const UserModel = mongoose.model('User', userSchema);
+```
+
+#### Organization Model
+```typescript
+// src/infrastructure/database/models/organization.model.ts
+import mongoose from 'mongoose';
+
+const organizationSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  slug: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true
+  },
+  address: {
+    street: String,
+    city: String,
+    state: String,
+    postalCode: String,
+    country: String
+  },
+  contactEmail: {
+    type: String,
+    required: true,
+    trim: true,
+    lowercase: true
+  },
+  contactPhone: {
+    type: String,
+    trim: true
+  },
+  planId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Plan',
+    required: true
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  settings: {
+    logoUrl: String,
+    primaryColor: String,
+    secondaryColor: String,
+    timezone: {
+      type: String,
+      default: 'UTC'
+    },
+    dateFormat: {
+      type: String,
+      default: 'YYYY-MM-DD'
+    }
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  },
+  subscriptionEndsAt: {
+    type: Date
+  }
+});
+
+organizationSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
+export const OrganizationModel = mongoose.model('Organization', organizationSchema);
+```
+
+#### Product Model
+```typescript
+// src/infrastructure/database/models/product.model.ts
+import mongoose from 'mongoose';
+
+const productSchema = new mongoose.Schema({
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true,
+    index: true
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  sku: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  barcode: {
+    type: String,
+    trim: true
+  },
+  description: {
+    type: String,
+    trim: true
+  },
+  categoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ProductCategory'
+  },
+  price: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  cost: {
+    type: Number,
+    min: 0
+  },
+  quantity: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  minStockLevel: {
+    type: Number,
+    default: 5,
+    min: 0
+  },
+  maxStockLevel: {
+    type: Number,
+    min: 0
+  },
+  images: [{
+    url: String,
+    isPrimary: Boolean
+  }],
+  attributes: {
+    type: Map,
+    of: String
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+productSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
+// Create compound index for unique SKU per tenant
+productSchema.index({ tenantId: 1, sku: 1 }, { unique: true });
+
+export const ProductModel = mongoose.model('Product', productSchema);
+```
+
+#### Product Category Model
+```typescript
+// src/infrastructure/database/models/product-category.model.ts
+import mongoose from 'mongoose';
+
+const productCategorySchema = new mongoose.Schema({
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true,
+    index: true
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  description: {
+    type: String,
+    trim: true
+  },
+  parentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ProductCategory',
+    default: null
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+productCategorySchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
+// Create compound index for unique category name per tenant
+productCategorySchema.index({ tenantId: 1, name: 1 }, { unique: true });
+
+export const ProductCategoryModel = mongoose.model('ProductCategory', productCategorySchema);
+```
+
+#### Client Model
+```typescript
+// src/infrastructure/database/models/client.model.ts
+import mongoose from 'mongoose';
+
+const clientSchema = new mongoose.Schema({
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true,
+    index: true
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  email: {
+    type: String,
+    trim: true,
+    lowercase: true
+  },
+  phone: {
+    type: String,
+    trim: true
+  },
+  address: {
+    street: String,
+    city: String,
+    state: String,
+    postalCode: String,
+    country: String
+  },
+  taxId: {
+    type: String,
+    trim: true
+  },
+  notes: {
+    type: String,
+    trim: true
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+clientSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
+export const ClientModel = mongoose.model('Client', clientSchema);
+```
+
+#### Sale Model
+```typescript
+// src/infrastructure/database/models/sale.model.ts
+import mongoose from 'mongoose';
+
+const saleItemSchema = new mongoose.Schema({
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1
+  },
+  unitPrice: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  discount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  total: {
+    type: Number,
+    required: true,
+    min: 0
+  }
+});
+
+const saleSchema = new mongoose.Schema({
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true,
+    index: true
+  },
+  invoiceNumber: {
+    type: String,
+    required: true
+  },
+  clientId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Client'
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['draft', 'completed', 'canceled'],
+    default: 'draft'
+  },
+  items: [saleItemSchema],
+  subtotal: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  taxRate: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  taxAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  discountAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  total: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['cash', 'credit_card', 'debit_card', 'bank_transfer', 'other'],
+    default: 'cash'
+  },
+  notes: {
+    type: String
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+saleSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  
+  // Create unique invoice number if not provided
+  if (!this.invoiceNumber) {
+    const timestamp = Math.floor(Date.now() / 1000);
+    const random = Math.floor(Math.random() * 1000);
+    this.invoiceNumber = `INV-${timestamp}-${random}`;
+  }
+  
+  next();
+});
+
+// Create compound index for unique invoice number per tenant
+saleSchema.index({ tenantId: 1, invoiceNumber: 1 }, { unique: true });
+
+export const SaleModel = mongoose.model('Sale', saleSchema);
+```
+
+#### Stock Movement Model
+```typescript
+// src/infrastructure/database/models/stock-movement.model.ts
+import mongoose from 'mongoose';
+
+const stockMovementSchema = new mongoose.Schema({
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true,
+    index: true
+  },
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true
+  },
+  type: {
+    type: String,
+    enum: ['purchase', 'sale', 'adjustment', 'return', 'transfer'],
+    required: true
+  },
+  quantity: {
+    type: Number,
+    required: true
+  },
+  previousQuantity: {
+    type: Number,
+    required: true
+  },
+  newQuantity: {
+    type: Number,
+    required: true
+  },
+  referenceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    refPath: 'referenceModel'
+  },
+  referenceModel: {
+    type: String,
+    enum: ['Sale', 'StockAdjustment', 'Purchase'],
+    default: null
+  },
+  notes: {
+    type: String
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Create indexes for performance
+stockMovementSchema.index({ tenantId: 1, productId: 1, createdAt: -1 });
+stockMovementSchema.index({ tenantId: 1, type: 1, createdAt: -1 });
+
+export const StockMovementModel = mongoose.model('StockMovement', stockMovementSchema);
+```
+
+#### Plan Model (for SaaS subscription plans)
+```typescript
+// src/infrastructure/database/models/plan.model.ts
+import mongoose from 'mongoose';
+
+const planSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+    unique: true
+  },
+  description: {
+    type: String,
+    trim: true
+  },
+  price: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  billingCycle: {
+    type: String,
+    enum: ['monthly', 'quarterly', 'yearly'],
+    default: 'monthly'
+  },
+  features: [{
+    name: {
+      type: String,
+      required: true
+    },
+    included: {
+      type: Boolean,
+      default: true
+    },
+    limit: {
+      type: Number,
+      default: null
+    }
+  }],
+  limits: {
+    users: {
+      type: Number,
+      default: 5
+    },
+    products: {
+      type: Number,
+      default: 100
+    },
+    storage: {
+      type: Number,
+      default: 1 // GB
+    }
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  isDefault: {
+    type: Boolean,
+    default: false
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+planSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
+export const PlanModel = mongoose.model('Plan', planSchema);
+```
+
+## Error Handling
+
+### Custom Error Classes
+```typescript
+// src/errors/index.ts
+export class AppError extends Error {
+  public statusCode: number;
+  public code: string;
+  public details: any;
+
+  constructor(message: string, statusCode = 500, code = 'SERVER_ERROR', details = null) {
+    super(message);
+    this.statusCode = statusCode;
+    this.code = code;
+    this.details = details;
+    Object.setPrototypeOf(this, AppError.prototype);
+  }
+}
+
+export class ValidationError extends AppError {
+  constructor(message: string, details = null) {
+    super(message, 422, 'VALIDATION_ERROR', details);
+    Object.setPrototypeOf(this, ValidationError.prototype);
+  }
+}
+
+export class NotFoundError extends AppError {
+  constructor(message: string) {
+    super(message, 404, 'NOT_FOUND', null);
+    Object.setPrototypeOf(this, NotFoundError.prototype);
+  }
+}
+
+export class UnauthorizedError extends AppError {
+  constructor(message: string) {
+    super(message, 401, 'UNAUTHORIZED', null);
+    Object.setPrototypeOf(this, UnauthorizedError.prototype);
+  }
+}
+
+export class ForbiddenError extends AppError {
+  constructor(message: string) {
+    super(message, 403, 'FORBIDDEN', null);
+    Object.setPrototypeOf(this, ForbiddenError.prototype);
+  }
+}
+
+export class ConflictError extends AppError {
+  constructor(message: string, details = null) {
+    super(message, 409, 'CONFLICT', details);
+    Object.setPrototypeOf(this, ConflictError.prototype);
+  }
+}
+
+export class TooManyRequestsError extends AppError {
+  constructor(message: string) {
+    super(message, 429, 'TOO_MANY_REQUESTS', null);
+    Object.setPrototypeOf(this, TooManyRequestsError.prototype);
+  }
+}
+```
+
+### Error Middleware
+```typescript
+// src/api/middleware/error.middleware.ts
+import { Request, Response, NextFunction } from 'express';
+import { AppError } from '../../errors';
+import logger from '../../utils/logger';
+
+export function errorMiddleware(
+  error: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  logger.error(error.stack);
+
+  if (error instanceof AppError) {
+    return res.status(error.statusCode).json({
+      data: null,
+      meta: {},
+      error: {
+        code: error.code,
+        message: error.message,
+        details: error.details
+      }
+    });
+  }
+
+  // Handle Mongoose validation errors
+  if (error.name === 'ValidationError') {
+    return res.status(422).json({
+      data: null,
+      meta: {},
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Validation failed',
+        details: error.message
+      }
+    });
+  }
+
+  // Handle JWT errors
+  if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      data: null,
+      meta: {},
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Invalid or expired token',
+        details: null
+      }
+    });
+  }
+
+  // Default server error response
+  return res.status(500).json({
+    data: null,
+    meta: {},
+    error: {
+      code: 'SERVER_ERROR',
+      message: 'An unexpected error occurred',
+      details: process.env.NODE_ENV === 'production' ? null : error.message
+    }
+  });
+}
+```
+
+## Authentication and Authorization
+
+### JWT Authentication
+```typescript
+// src/infrastructure/auth/jwt.ts
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET, JWT_EXPIRES_IN } from '../../config/env';
+import { UnauthorizedError } from '../../errors';
+
+export interface TokenPayload {
+  userId: string;
+  tenantId: string;
+  role: string;
+}
+
+export const generateToken = (payload: TokenPayload): string => {
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN
+  });
+};
+
+export const verifyToken = (token: string): TokenPayload => {
+  try {
+    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+  } catch (error) {
+    throw new UnauthorizedError('Invalid or expired token');
+  }
+};
+```
+
+### Auth Middleware
+```typescript
+// src/api/middleware/auth.middleware.ts
+import { Request, Response, NextFunction } from 'express';
+import { UnauthorizedError, ForbiddenError } from '../../errors';
+import { verifyToken, TokenPayload } from '../../infrastructure/auth/jwt';
+import { UserService } from '../../domain/services/user.service';
+
+export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedError('Authentication token is required');
+    }
+    
+    const token = authHeader.split(' ')[1];
+    const decoded = verifyToken(token);
+    
+    // Attach user info to request
+    req.user = decoded;
+    
+    // Check if user still exists and is active
+    const user = await UserService.getUserById(decoded.tenantId, decoded.userId);
+    
+    if (!user || !user.isActive) {
+      throw new UnauthorizedError('User does not exist or is deactivated');
+    }
+    
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+export function restrictTo(...roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new UnauthorizedError('User not authenticated'));
+    }
+    
+    if (!roles.includes(req.user.role)) {
+      return next(new ForbiddenError('You do not have permission to perform this action'));
+    }
+    
+    next();
+  };
+}
+```
+
+## Testing Strategy
+
+### Unit Tests
+- Use Jest as the testing framework
+- Test each service and utility function in isolation
+- Mock external dependencies and repositories
+
+```typescript
+// src/domain/services/__tests__/product.service.test.ts
+// src/domain/services/__tests__/product.service.test.ts
+import { ProductService } from '../product.service';
+import { ProductRepository } from '../../repositories/product.repository';
+import { ValidationError, ProductNotFoundException } from '../../../errors';
+import { Product } from '../../entities/product.entity';
+
+// Mock the repository implementation
+const mockProductRepository: jest.Mocked<ProductRepository> = {
+  findMany: jest.fn(),
+  findById: jest.fn(),
+  findBySku: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+};
+
+// Use the mock implementation for the ProductRepository interface
+// This requires setting up dependency injection or a way to provide the mock
+// For simplicity here, we might directly assign it if the service allows,
+// or use jest.mock to replace the actual repository import.
+// Assuming ProductService uses ProductRepository directly (simplified example):
+jest.mock('../../repositories/product.repository', () => ({
+  ProductRepository: mockProductRepository,
+}));
+
+describe('ProductService', () => {
+  const tenantId = 'tenant-abc';
+  const productId = 'prod-123';
+
+  beforeEach(() => {
+    // Reset mocks before each test
+    jest.clearAllMocks();
+  });
+
+  describe('createProduct', () => {
+    const validProductData = {
+      name: 'Test Product',
+      sku: 'SKU123',
+      price: 100,
+      quantity: 10,
+    };
+    const createdProduct: Product = {
+      _id: productId,
+      tenantId,
+      ...validProductData,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true,
+    };
+
+    it('should create a product when valid data is provided', async () => {
+      // Arrange
+      mockProductRepository.create.mockResolvedValue(createdProduct);
+
+      // Act
+      const result = await ProductService.createProduct(tenantId, validProductData);
+
+      // Assert
+      expect(mockProductRepository.create).toHaveBeenCalledWith(tenantId, expect.objectContaining(validProductData));
+      expect(result).toEqual(createdProduct);
+    });
+
+    it('should throw ValidationError if price is negative', async () => {
+      // Arrange
+      const invalidData = { ...validProductData, price: -10 };
+
+      // Act & Assert
+      await expect(ProductService.createProduct(tenantId, invalidData)).rejects.toThrow(ValidationError);
+      expect(mockProductRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('should throw ValidationError if name is missing', async () => {
+      // Arrange
+      const invalidData = { ...validProductData, name: '' };
+
+      // Act & Assert
+      await expect(ProductService.createProduct(tenantId, invalidData)).rejects.toThrow(ValidationError);
+      expect(mockProductRepository.create).not.toHaveBeenCalled();
+    });
+
+     it('should throw ValidationError if SKU is missing', async () => {
+      // Arrange
+      const invalidData = { ...validProductData, sku: '  ' };
+
+      // Act & Assert
+      await expect(ProductService.createProduct(tenantId, invalidData)).rejects.toThrow(ValidationError);
+      expect(mockProductRepository.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getProductById', () => {
+    it('should return a product if found', async () => {
+      // Arrange
+      const existingProduct: Product = { _id: productId, tenantId, name: 'Found Product', sku: 'SKU456', price: 50, createdAt: new Date(), updatedAt: new Date(), isActive: true, quantity: 5 };
+      mockProductRepository.findById.mockResolvedValue(existingProduct);
+
+      // Act
+      const result = await ProductService.getProductById(tenantId, productId);
+
+      // Assert
+      expect(mockProductRepository.findById).toHaveBeenCalledWith(tenantId, productId);
+      expect(result).toEqual(existingProduct);
+    });
+
+    it('should throw ProductNotFoundException if product not found', async () => {
+      // Arrange
+      mockProductRepository.findById.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(ProductService.getProductById(tenantId, productId)).rejects.toThrow(ProductNotFoundException);
+      expect(mockProductRepository.findById).toHaveBeenCalledWith(tenantId, productId);
+    });
+  });
+
+  describe('updateProduct', () => {
+     const updateData = { price: 120 };
+     const existingProduct: Product = { _id: productId, tenantId, name: 'Old Product', sku: 'SKU789', price: 100, createdAt: new Date(), updatedAt: new Date(), isActive: true, quantity: 8 };
+     const updatedProduct: Product = { ...existingProduct, ...updateData, updatedAt: new Date() };
+
+    it('should update the product when valid data is provided', async () => {
+        // Arrange
+        mockProductRepository.findById.mockResolvedValue(existingProduct); // Need to find it first
+        mockProductRepository.update.mockResolvedValue(updatedProduct);
+
+        // Act
+        const result = await ProductService.updateProduct(tenantId, productId, updateData);
+
+        // Assert
+        expect(mockProductRepository.findById).toHaveBeenCalledWith(tenantId, productId);
+        expect(mockProductRepository.update).toHaveBeenCalledWith(tenantId, productId, expect.objectContaining(updateData));
+        expect(result).toEqual(updatedProduct);
+    });
+
+     it('should throw ProductNotFoundException if product to update is not found', async () => {
+        // Arrange
+        mockProductRepository.findById.mockResolvedValue(null);
+
+        // Act & Assert
+        await expect(ProductService.updateProduct(tenantId, productId, updateData)).rejects.toThrow(ProductNotFoundException);
+        expect(mockProductRepository.update).not.toHaveBeenCalled();
+    });
+
+     it('should throw ValidationError if update data is invalid (e.g., negative price)', async () => {
+        // Arrange
+        const invalidUpdateData = { price: -5 };
+        mockProductRepository.findById.mockResolvedValue(existingProduct);
+
+        // Act & Assert
+        await expect(ProductService.updateProduct(tenantId, productId, invalidUpdateData)).rejects.toThrow(ValidationError);
+        expect(mockProductRepository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteProduct', () => {
+     const existingProduct: Product = { _id: productId, tenantId, name: 'ToDelete', sku: 'SKU_DEL', price: 20, createdAt: new Date(), updatedAt: new Date(), isActive: true, quantity: 2 };
+
+    it('should delete the product if found', async () => {
+        // Arrange
+        mockProductRepository.findById.mockResolvedValue(existingProduct);
+        mockProductRepository.delete.mockResolvedValue(undefined); // delete returns void
+
+        // Act
+        await ProductService.deleteProduct(tenantId, productId);
+
+        // Assert
+        expect(mockProductRepository.findById).toHaveBeenCalledWith(tenantId, productId);
+        expect(mockProductRepository.delete).toHaveBeenCalledWith(tenantId, productId);
+    });
+
+    it('should throw ProductNotFoundException if product to delete is not found', async () => {
+        // Arrange
+        mockProductRepository.findById.mockResolvedValue(null);
+
+        // Act & Assert
+        await expect(ProductService.deleteProduct(tenantId, productId)).rejects.toThrow(ProductNotFoundException);
+        expect(mockProductRepository.delete).not.toHaveBeenCalled();
+    });
+  });
+});
+```
+
+### Integration Tests
+- Use Jest and Supertest for testing API endpoints.
+- Test the interaction between different layers (API, Domain, Infrastructure).
+- Use a dedicated test database that is seeded before tests run and cleaned up afterwards.
+- Test scenarios involving multiple components (e.g., creating a user and then logging in).
+- Focus on validating API contracts (request/response formats, status codes).
+- Place integration tests in a separate top-level tests/integration directory.
+
+```typescript
+// tests/integration/product.integration.test.ts
+import request from 'supertest';
+import app from '../../src/app'; // Your Express app instance
+import { connectTestDB, disconnectTestDB, clearTestDB } from '../test-setup'; // Helper functions for test DB
+import { OrganizationModel } from '../../src/infrastructure/database/models/organization.model';
+import { PlanModel } from '../../src/infrastructure/database/models/plan.model';
+import { UserModel } from '../../src/infrastructure/database/models/user.model';
+import { generateToken } from '../../src/infrastructure/auth/jwt'; // Assuming you have this utility
+
+describe('Product API Endpoints', () => {
+  let token: string;
+  let tenantId: string;
+  let userId: string;
+
+  beforeAll(async () => {
+    await connectTestDB();
+  });
+
+  beforeEach(async () => {
+    await clearTestDB();
+
+    // Seed necessary data for tests (Plan, Organization, User)
+    const plan = await PlanModel.create({ name: 'Test Plan', price: 0 });
+    const organization = await OrganizationModel.create({
+      name: 'Test Org',
+      slug: 'test-org',
+      contactEmail: 'test@org.com',
+      planId: plan._id,
+    });
+    tenantId = organization._id.toString();
+
+    const user = await UserModel.create({
+      tenantId: organization._id,
+      firstName: 'Test',
+      lastName: 'User',
+      email: 'testuser@org.com',
+      password: 'password123', // Password will be hashed by model pre-save hook
+      role: 'admin',
+    });
+    userId = user._id.toString();
+
+    // Generate JWT token for the test user
+    token = generateToken({ userId, tenantId, role: 'admin' });
+  });
+
+  afterAll(async () => {
+    await disconnectTestDB();
+  });
+
+  describe('POST /api/v1/products', () => {
+    it('should create a new product and return 201', async () => {
+      const productData = {
+        name: 'Integration Test Product',
+        sku: 'INT-TEST-001',
+        price: 19.99,
+        quantity: 50,
+      };
+
+      const response = await request(app)
+        .post('/api/v1/products')
+        .set('Authorization', `Bearer ${token}`)
+        .send(productData);
+
+      expect(response.status).toBe(201);
+      expect(response.body.error).toBeNull();
+      expect(response.body.data).toHaveProperty('_id');
+      expect(response.body.data.name).toBe(productData.name);
+      expect(response.body.data.sku).toBe(productData.sku);
+      expect(response.body.data.tenantId).toBe(tenantId);
+    });
+
+    it('should return 422 if required fields are missing', async () => {
+       const productData = { // Missing name and sku
+        price: 19.99,
+      };
+
+      const response = await request(app)
+        .post('/api/v1/products')
+        .set('Authorization', `Bearer ${token}`)
+        .send(productData);
+
+      expect(response.status).toBe(422);
+      expect(response.body.error).not.toBeNull();
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should return 401 if no token is provided', async () => {
+      const productData = { name: 'No Auth Product', sku: 'NO-AUTH-001', price: 10 };
+      const response = await request(app)
+        .post('/api/v1/products')
+        .send(productData); // No Authorization header
+
+      expect(response.status).toBe(401);
+      expect(response.body.error.code).toBe('UNAUTHORIZED');
+    });
+  });
+
+  describe('GET /api/v1/products', () => {
+    beforeEach(async () => {
+        // Seed some products for the tenant
+        await request(app)
+            .post('/api/v1/products')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ name: 'Product A', sku: 'SKU-A', price: 10 });
+        await request(app)
+            .post('/api/v1/products')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ name: 'Product B', sku: 'SKU-B', price: 20 });
+    });
+
+    it('should return a list of products for the tenant with 200', async () => {
+      const response = await request(app)
+        .get('/api/v1/products')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.error).toBeNull();
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBe(2);
+      expect(response.body.data[0].tenantId).toBe(tenantId);
+      expect(response.body.meta.pagination.total).toBe(2);
+    });
+
+    it('should apply pagination correctly', async () => {
+        const response = await request(app)
+        .get('/api/v1/products?page=1&limit=1')
+        .set('Authorization', `Bearer ${token}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.data.length).toBe(1);
+        expect(response.body.meta.pagination.page).toBe(1);
+        expect(response.body.meta.pagination.perPage).toBe(1);
+        expect(response.body.meta.pagination.total).toBe(2);
+        expect(response.body.meta.pagination.totalPages).toBe(2);
+    });
+
+     it('should return 401 if no token is provided', async () => {
+      const response = await request(app)
+        .get('/api/v1/products'); // No Authorization header
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  // Add more integration tests for GET by ID, PUT, PATCH, DELETE
+});
+```
+
+
+### End-to-End (E2E) Tests
+- Use frameworks like Cypress or Playwright.
+- Simulate real user interactions within the browser.
+- Test complete user flows across both frontend and backend.
+- Run against a staging or dedicated E2E environment.
+- Focus on critical user paths (e.g., user registration, creating a product, making a sale).
+- Keep E2E tests focused on high-level flows, as they are slower and more brittle than unit or integration tests
+
+
+### Test Coverage
+- Aim for high unit test coverage, especially for the Domain Layer (>80%).
+- Ensure significant integration test coverage for API endpoints and core interactions (>70%).
+- Focus E2E tests on critical user workflows rather than aiming for high percentage coverage.
+- Use code coverage tools (like Jest's built-in coverage or Istanbul) to track progress.
+- Regularly review coverage reports and identify gaps in testing.

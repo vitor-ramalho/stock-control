@@ -1,0 +1,280 @@
+---
+description: 
+globs: 
+alwaysApply: true
+app_language: pt-BR
+---
+# Backend Structure Document
+
+## API Architecture
+
+### RESTful API Structure
+- Implement a RESTful API using Express.js with TypeScript
+- Organize endpoints by resource domains: `/api/v1/[resource]`
+- Main resource domains: `organizations`, `users`, `products`, `stock`, `clients`, `sales`
+- Include tenant identification in all routes except public and authentication endpoints
+
+### Multi-Tenant Design
+- Implement tenant isolation through middleware
+- All database queries must include tenant filters
+- Store `tenantId` (organizationId) in JWT payload
+- Apply tenant filtering at the repository layer
+- Implement tenant middleware to validate requests
+
+### Authentication & Authorization
+- JWT-based authentication with refresh token rotation
+- Role-based access control (RBAC) with granular permissions
+- Permission structure: `[action]:[resource]` (e.g., `read:products`, `create:sales`)
+- Support for inviting users with predefined roles
+- Secure password handling with bcrypt and proper salt rounds
+
+### API Response Format
+```typescript
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+  meta?: {
+    pagination?: {
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+    }
+  }
+}
+```
+
+### Error Handling
+- Implement centralized error handling middleware
+- Use custom error classes extending from a base AppError
+- Include status codes, error codes, and user-friendly messages
+- Log detailed errors but return sanitized responses to clients
+- Handle validation errors separately with field-specific messages
+
+## Database Design
+
+### Core Schema
+- `organizations`: Multi-tenant root entity
+- `organization_plans`: Subscription plans for organizations
+- `users`: User accounts linked to organizations
+- `roles`: Role definitions with permissions
+- `products`: Product catalog
+- `inventory`: Stock levels and movements
+- `clients`: Customer information
+- `sales`: Sales records
+- `sale_items`: Individual items in a sale
+
+### Example Schema Design
+
+#### Organizations Table
+```typescript
+interface Organization {
+  id: string; // UUID primary key
+  name: string;
+  planId: string; // Foreign key to plans
+  address?: string;
+  phone?: string;
+  email: string;
+  logo?: string;
+  settings: Record<string, any>; // JSON field for org settings
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+#### Users Table
+```typescript
+interface User {
+  id: string; // UUID primary key
+  organizationId: string; // Tenant ID, foreign key to organizations
+  email: string;
+  passwordHash: string;
+  firstName: string;
+  lastName: string;
+  roleId: string; // Foreign key to roles
+  active: boolean;
+  lastLogin?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+#### Products Table
+```typescript
+interface Product {
+  id: string; // UUID primary key
+  organizationId: string; // Tenant ID
+  sku: string;
+  name: string;
+  description?: string;
+  category?: string;
+  cost: number;
+  price: number;
+  taxRate?: number;
+  minimumStock?: number;
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+#### Inventory Table
+```typescript
+interface InventoryRecord {
+  id: string; // UUID primary key
+  organizationId: string; // Tenant ID
+  productId: string; // Foreign key to products
+  quantity: number;
+  updatedAt: Date;
+}
+
+interface StockMovement {
+  id: string; // UUID primary key
+  organizationId: string; // Tenant ID
+  productId: string; // Foreign key to products
+  type: 'PURCHASE' | 'SALE' | 'ADJUSTMENT' | 'RETURN';
+  quantity: number; // Can be negative for sales/adjustments
+  reference?: string; // Reference to sale or purchase
+  notes?: string;
+  createdBy: string; // User ID
+  createdAt: Date;
+}
+```
+
+### Database Queries & Repository Pattern
+
+#### Base Repository Structure
+```typescript
+abstract class BaseRepository<T> {
+  constructor(protected db: Pool, protected tableName: string) {}
+  
+  // Always include tenant filtering in base methods
+  async findById(id: string, tenantId: string): Promise<T | null> {
+    const result = await this.db.query(
+      `SELECT * FROM ${this.tableName} WHERE id = $1 AND organizationId = $2`,
+      [id, tenantId]
+    );
+    return result.rows[0] || null;
+  }
+  
+  async findAll(tenantId: string, filters?: Record<string, any>, pagination?: { page: number, pageSize: number }): Promise<{ data: T[], total: number }> {
+    // Implement with tenant filtering
+    // ...
+  }
+  
+  // Similar methods for create, update, delete
+  // All including tenant validation
+}
+```
+
+#### Transaction Management
+- Use PostgreSQL transactions for operations that modify multiple tables
+- Implement a transaction manager utility
+- Ensure proper rollback on errors
+
+## Service Layer
+
+### Service Pattern
+- Implement business logic in service classes
+- Services should be stateless and dependency-injected
+- Each domain area has its own service (ProductService, SalesService, etc.)
+- Services handle permissions checks before operations
+
+```typescript
+class ProductService {
+  constructor(
+    private productRepo: ProductRepository,
+    private inventoryRepo: InventoryRepository,
+    private eventEmitter: EventEmitter
+  ) {}
+  
+  async createProduct(tenantId: string, userId: string, productData: CreateProductDto): Promise<Product> {
+    // Validate data
+    // Create product
+    // Initial inventory setup if needed
+    // Emit events
+    // Return product
+  }
+  
+  // Other product-related methods
+}
+```
+
+### Data Transfer Objects (DTOs)
+- Use DTOs for input validation and type safety
+- Implement using Zod or class-validator
+- Separate DTOs for creation, updates, and responses
+
+```typescript
+// Example using Zod
+const CreateProductSchema = z.object({
+  sku: z.string().min(3).max(50),
+  name: z.string().min(1).max(255),
+  description: z.string().optional(),
+  category: z.string().optional(),
+  cost: z.number().nonnegative(),
+  price: z.number().nonnegative(),
+  taxRate: z.number().min(0).max(100).optional(),
+  minimumStock: z.number().nonnegative().optional(),
+});
+
+type CreateProductDto = z.infer<typeof CreateProductSchema>;
+```
+
+## Background Jobs & Processing
+
+### Job Queue
+- Implement with Bull or similar queue system
+- Separate queues for different job types:
+  - Report generation
+  - Email sending
+  - Inventory alerts
+  - Data synchronization
+
+### Scheduled Tasks
+- Stock level checks and alerts
+- Report generation
+- Subscription status checking
+
+## Event System
+
+### Event-Driven Architecture
+- Implement publish/subscribe pattern for system events
+- Events should include tenant context
+- Main events:
+  - `product.created`
+  - `product.updated`
+  - `stock.adjusted`
+  - `stock.belowThreshold`
+  - `sale.completed`
+
+```typescript
+interface AppEvent<T> {
+  type: string;
+  tenantId: string;
+  payload: T;
+  metadata: {
+    userId?: string;
+    timestamp: Date;
+  };
+}
+```
+
+## API Testing Structure
+
+### Test Categories
+- Unit tests for business logic
+- Integration tests for API endpoints
+- Repository tests with test database
+
+### Test Organization
+- Test files should mirror the structure of source files
+- Use fixtures for test data
+- Mock external dependencies
+- Include tenant context in all tests
