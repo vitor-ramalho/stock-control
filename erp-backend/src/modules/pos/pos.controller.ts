@@ -6,17 +6,24 @@ import {
   Param,
   UseGuards,
   Query,
-  Request,
 } from '@nestjs/common';
 import { PosService } from './pos.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { AddSaleItemDto } from './dto/add-sale-item.dto';
 import { CloseSaleDto } from './dto/close-sale.dto';
+import { CheckoutDto } from './dto/checkout.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { TenantId } from '../../common/decorators/tenant-id.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
+
+interface AuthUserPayload {
+  userId: string;
+  role: UserRole;
+  tenantId: string;
+}
 
 @Controller('pos')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -85,11 +92,11 @@ export class PosController {
   @Post('checkout')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   checkout(
-    @Body() checkoutDto: any,
-    @Request() req: any,
+    @Body() checkoutDto: CheckoutDto,
+    @CurrentUser() user: AuthUserPayload,
     @TenantId() tenantId: string,
   ) {
-    return this.posService.checkout(checkoutDto, req.user.userId, tenantId);
+    return this.posService.checkout(checkoutDto, user.userId, tenantId);
   }
 
   /**
@@ -104,10 +111,10 @@ export class PosController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    const pageNum = page ? +page : 1;
-    const limitNum = limit ? +limit : 20;
+    const pageNum = Math.max(1, page ? +page : 1);
+    const limitNum = Math.min(200, Math.max(1, limit ? +limit : 20));
     const offset = (pageNum - 1) * limitNum;
-    
+
     return this.posService.findAll(tenantId, limitNum, offset);
   }
 

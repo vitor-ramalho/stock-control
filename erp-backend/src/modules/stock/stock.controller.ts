@@ -28,7 +28,10 @@ export class StockController {
    */
   @Post('in')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  stockIn(@Body() createStockInDto: CreateStockInDto, @TenantId() tenantId: string) {
+  stockIn(
+    @Body() createStockInDto: CreateStockInDto,
+    @TenantId() tenantId: string,
+  ) {
     return this.stockService.stockIn(createStockInDto, tenantId);
   }
 
@@ -39,7 +42,10 @@ export class StockController {
    */
   @Post('out')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  stockOut(@Body() createStockOutDto: CreateStockOutDto, @TenantId() tenantId: string) {
+  stockOut(
+    @Body() createStockOutDto: CreateStockOutDto,
+    @TenantId() tenantId: string,
+  ) {
     return this.stockService.stockOut(createStockOutDto, tenantId);
   }
 
@@ -49,7 +55,10 @@ export class StockController {
    * All authenticated users can view stock movements
    */
   @Get('product/:id')
-  getProductMovements(@Param('id') productId: string, @TenantId() tenantId: string) {
+  getProductMovements(
+    @Param('id') productId: string,
+    @TenantId() tenantId: string,
+  ) {
     return this.stockService.getProductMovements(productId, tenantId);
   }
 
@@ -64,10 +73,9 @@ export class StockController {
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
   ) {
-    return this.stockService.findAll(
-      tenantId,
-      limit ? +limit : 100,
-      offset ? +offset : 0,
-    );
+    const limitNum = Math.min(500, Math.max(1, limit ? +limit : 100));
+    const offsetNum = Math.max(0, offset ? +offset : 0);
+
+    return this.stockService.findAll(tenantId, limitNum, offsetNum);
   }
 }

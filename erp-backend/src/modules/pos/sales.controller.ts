@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  UseGuards,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, Query } from '@nestjs/common';
 import { PosService } from './pos.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -24,20 +18,28 @@ export class SalesController {
   /**
    * GET /sales
    * Get all sales for tenant with pagination
-   * Only ADMIN and MANAGER can view all sales
+    * ADMIN, MANAGER, and CASHIER can view sales
    */
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+    @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   findAll(
     @TenantId() tenantId: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
-    const pageNum = page ? +page : 1;
-    const limitNum = limit ? +limit : 20;
+    const pageNum = Math.max(1, page ? +page : 1);
+    const limitNum = Math.min(200, Math.max(1, limit ? +limit : 20));
     const offset = (pageNum - 1) * limitNum;
 
-    return this.posService.findAll(tenantId, limitNum, offset);
+    return this.posService.findAll(
+      tenantId,
+      limitNum,
+      offset,
+      startDate,
+      endDate,
+    );
   }
 
   /**

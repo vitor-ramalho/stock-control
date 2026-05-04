@@ -86,6 +86,21 @@ export class StockService {
       );
     }
 
+    const updateResult = await this.productRepository
+      .createQueryBuilder()
+      .update(Product)
+      .set({ quantity: () => `quantity - ${quantity}` })
+      .where('id = :id', { id: productId })
+      .andWhere('"tenantId" = :tenantId', { tenantId })
+      .andWhere('quantity >= :qty', { qty: quantity })
+      .execute();
+
+    if (!updateResult.affected || updateResult.affected === 0) {
+      throw new BadRequestException(
+        `Insufficient stock. Available: ${product.quantity}, Requested: ${quantity}`,
+      );
+    }
+
     // Create stock movement
     const movement = this.stockMovementRepository.create({
       tenantId,
@@ -95,13 +110,7 @@ export class StockService {
       origin: origin || 'manual',
     });
 
-    const savedMovement = await this.stockMovementRepository.save(movement);
-
-    // Update product quantity
-    product.quantity -= quantity;
-    await this.productRepository.save(product);
-
-    return savedMovement;
+    return this.stockMovementRepository.save(movement);
   }
 
   /**
@@ -132,6 +141,21 @@ export class StockService {
       );
     }
 
+    const updateResult = await this.productRepository
+      .createQueryBuilder()
+      .update(Product)
+      .set({ quantity: () => `quantity - ${quantity}` })
+      .where('id = :id', { id: productId })
+      .andWhere('"tenantId" = :tenantId', { tenantId })
+      .andWhere('quantity >= :qty', { qty: quantity })
+      .execute();
+
+    if (!updateResult.affected || updateResult.affected === 0) {
+      throw new BadRequestException(
+        `Insufficient stock for ${product.name}. Available: ${product.quantity}, Requested: ${quantity}`,
+      );
+    }
+
     // Create stock movement
     const movement = this.stockMovementRepository.create({
       tenantId,
@@ -141,13 +165,7 @@ export class StockService {
       origin,
     });
 
-    const savedMovement = await this.stockMovementRepository.save(movement);
-
-    // Update product quantity
-    product.quantity -= quantity;
-    await this.productRepository.save(product);
-
-    return savedMovement;
+    return this.stockMovementRepository.save(movement);
   }
 
   /**

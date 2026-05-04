@@ -17,12 +17,16 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { EntryType } from './entities/financial-entry.entity';
 
+interface AuthUserPayload {
+  userId: string;
+  role: UserRole;
+  tenantId: string;
+}
+
 @Controller('finance')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class FinancialEntryController {
-  constructor(
-    private readonly financialEntryService: FinancialEntryService,
-  ) {}
+  constructor(private readonly financialEntryService: FinancialEntryService) {}
 
   /**
    * POST /finance/entry
@@ -33,7 +37,7 @@ export class FinancialEntryController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   create(
     @Body() createFinancialEntryDto: CreateFinancialEntryDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUserPayload,
     @TenantId() tenantId: string,
   ) {
     return this.financialEntryService.createEntry(
@@ -55,27 +59,30 @@ export class FinancialEntryController {
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
   ) {
-    return this.financialEntryService.findAll(
-      tenantId,
-      limit ? +limit : 100,
-      offset ? +offset : 0,
-    );
+    const limitNum = Math.min(500, Math.max(1, limit ? +limit : 100));
+    const offsetNum = Math.max(0, offset ? +offset : 0);
+
+    return this.financialEntryService.findAll(tenantId, limitNum, offsetNum);
   }
 
   /**
    * GET /finance/entries/register/:id
    * Get all entries for a specific cash register
-   * Only ADMIN and MANAGER can view register entries
+   * ADMIN and MANAGER can view any register
+   * CASHIER can only view their own register
    */
   @Get('entries/register/:id')
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   getEntriesByRegister(
     @Param('id') cashRegisterId: string,
     @TenantId() tenantId: string,
+    @CurrentUser() user: AuthUserPayload,
   ) {
     return this.financialEntryService.getEntriesByRegister(
       cashRegisterId,
       tenantId,
+      user.userId,
+      user.role,
     );
   }
 
@@ -91,10 +98,12 @@ export class FinancialEntryController {
     @TenantId() tenantId: string,
     @Query('limit') limit?: number,
   ) {
+    const limitNum = Math.min(500, Math.max(1, limit ? +limit : 100));
+
     return this.financialEntryService.getEntriesByType(
       type,
       tenantId,
-      limit ? +limit : 100,
+      limitNum,
     );
   }
 
@@ -110,10 +119,12 @@ export class FinancialEntryController {
     @TenantId() tenantId: string,
     @Query('limit') limit?: number,
   ) {
+    const limitNum = Math.min(500, Math.max(1, limit ? +limit : 100));
+
     return this.financialEntryService.getEntriesByCategory(
       category,
       tenantId,
-      limit ? +limit : 100,
+      limitNum,
     );
   }
 }

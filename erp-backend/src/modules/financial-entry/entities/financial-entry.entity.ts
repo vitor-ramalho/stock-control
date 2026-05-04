@@ -51,6 +51,9 @@ export class FinancialEntry {
   @Column({ nullable: true })
   category: string;
 
+  @Column({ nullable: true })
+  paymentMethod: string;
+
   @CreateDateColumn()
   createdAt: Date;
 }

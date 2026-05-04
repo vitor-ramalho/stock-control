@@ -25,6 +25,10 @@ export class CreateFinancialEntryDto {
   category?: string;
 
   @IsOptional()
+  @IsString()
+  paymentMethod?: string;
+
+  @IsOptional()
   @IsUUID()
   saleId?: string;
 }

@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  UseGuards,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Query } from '@nestjs/common';
 import { CashRegisterService } from './cash-register.service';
 import { OpenCashRegisterDto } from './dto/open-cash-register.dto';
 import { CloseCashRegisterDto } from './dto/close-cash-register.dto';
@@ -15,6 +8,12 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { TenantId } from '../../common/decorators/tenant-id.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
+
+interface AuthUserPayload {
+  userId: string;
+  role: UserRole;
+  tenantId: string;
+}
 
 @Controller('cash')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -30,7 +29,7 @@ export class CashRegisterController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   openRegister(
     @Body() openCashRegisterDto: OpenCashRegisterDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUserPayload,
     @TenantId() tenantId: string,
   ) {
     return this.cashRegisterService.openRegister(
@@ -49,7 +48,7 @@ export class CashRegisterController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   closeRegister(
     @Body() closeCashRegisterDto: CloseCashRegisterDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUserPayload,
     @TenantId() tenantId: string,
   ) {
     return this.cashRegisterService.closeRegister(
@@ -66,7 +65,7 @@ export class CashRegisterController {
    */
   @Get('current')
   getCurrentRegister(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUserPayload,
     @TenantId() tenantId: string,
   ) {
     return this.cashRegisterService.getCurrentRegister(user.userId, tenantId);
@@ -79,11 +78,19 @@ export class CashRegisterController {
    */
   @Get('report/daily')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  getDailyReport(
-    @Query('date') date: string,
-    @TenantId() tenantId: string,
-  ) {
+  getDailyReport(@Query('date') date: string, @TenantId() tenantId: string) {
     const reportDate = date ? new Date(date) : new Date();
     return this.cashRegisterService.getDailyReport(reportDate, tenantId);
+  }
+
+  /**
+   * GET /cash/overview
+   * Get overview of all open cash registers
+   * Only ADMIN and MANAGER can view overview
+   */
+  @Get('overview')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  getOverview(@TenantId() tenantId: string) {
+    return this.cashRegisterService.getAdminOverview(tenantId);
   }
 }

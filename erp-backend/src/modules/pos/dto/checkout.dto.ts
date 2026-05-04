@@ -1,4 +1,12 @@
-import { IsEnum, IsOptional, IsString, IsNumber, IsArray, ValidateNested, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsArray,
+  ValidateNested,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaymentMethod } from '../entities/sale.entity';
 

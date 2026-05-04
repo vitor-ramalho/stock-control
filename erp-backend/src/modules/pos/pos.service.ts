@@ -4,16 +4,35 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Sale, SaleStatus } from './entities/sale.entity';
+import {
+  Repository,
+  Between,
+  MoreThanOrEqual,
+  LessThanOrEqual,
+  DataSource,
+  FindOptionsWhere,
+} from 'typeorm';
+import { Sale, SaleStatus, PaymentMethod } from './entities/sale.entity';
 import { SaleItem } from './entities/sale-item.entity';
 import { Product } from '../products/entities/product.entity';
-import { CashRegister, CashRegisterStatus } from '../cash-register/entities/cash-register.entity';
+import {
+  CashRegister,
+  CashRegisterStatus,
+} from '../cash-register/entities/cash-register.entity';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { AddSaleItemDto } from './dto/add-sale-item.dto';
 import { CloseSaleDto } from './dto/close-sale.dto';
+import { CheckoutDto } from './dto/checkout.dto';
 import { StockService } from '../stock/stock.service';
 import { FinancialEntryService } from '../financial-entry/financial-entry.service';
+import {
+  StockMovement,
+  MovementType,
+} from '../stock/entities/stock-movement.entity';
+import {
+  FinancialEntry,
+  EntryType,
+} from '../financial-entry/entities/financial-entry.entity';
 
 @Injectable()
 export class PosService {
@@ -28,6 +47,7 @@ export class PosService {
     private cashRegisterRepository: Repository<CashRegister>,
     private stockService: StockService,
     private financialEntryService: FinancialEntryService,
+    private dataSource: DataSource,
   ) {}
 
   /**
@@ -58,6 +78,7 @@ export class PosService {
     const sale = this.saleRepository.create({
       tenantId,
       cashRegisterId,
+      userId: cashRegister.userId,
       total: 0,
       status: SaleStatus.PENDING,
     });
@@ -83,9 +104,7 @@ export class PosService {
     });
 
     if (!sale) {
-      throw new NotFoundException(
-        'Sale not found or already closed',
-      );
+      throw new NotFoundException('Sale not found or already closed');
     }
 
     // Find product and verify it belongs to tenant
@@ -99,9 +118,7 @@ export class PosService {
 
     // Check if product is active
     if (!product.isActive) {
-      throw new BadRequestException(
-        `Product "${product.name}" is not active`,
-      );
+      throw new BadRequestException(`Product "${product.name}" is not active`);
     }
 
     // Validate sufficient stock
@@ -169,16 +186,12 @@ export class PosService {
     });
 
     if (!sale) {
-      throw new NotFoundException(
-        'Sale not found or already closed',
-      );
+      throw new NotFoundException('Sale not found or already closed');
     }
 
     // Validate sale has items
     if (!sale.items || sale.items.length === 0) {
-      throw new BadRequestException(
-        'Cannot close sale without items',
-      );
+      throw new BadRequestException('Cannot close sale without items');
     }
 
     // Update sale status and payment method
@@ -187,13 +200,14 @@ export class PosService {
 
     const closedSale = await this.saleRepository.save(sale);
 
-    // Create financial entry automatically
+    // Create financial entry automatically with payment method
     await this.financialEntryService.autoEntryForSale(
       saleId,
       Number(sale.total),
       sale.cashRegisterId,
       tenantId,
       `Sale #${saleId} - ${paymentMethod}`,
+      paymentMethod,
     );
 
     return closedSale;
@@ -222,14 +236,53 @@ export class PosService {
     tenantId: string,
     limit = 100,
     offset = 0,
-  ): Promise<Sale[]> {
-    return this.saleRepository.find({
-      where: { tenantId },
+    startDate?: string,
+    endDate?: string,
+  ): Promise<{
+    data: Sale[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    // Build where clause with date filters if provided
+    const whereClause: FindOptionsWhere<Sale> = { tenantId };
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      whereClause.createdAt = Between(start, end);
+    } else if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      whereClause.createdAt = MoreThanOrEqual(start);
+    } else if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      whereClause.createdAt = LessThanOrEqual(end);
+    }
+
+    const [data, total] = await this.saleRepository.findAndCount({
+      where: whereClause,
       relations: ['items', 'cashRegister'],
       order: { createdAt: 'DESC' },
       take: limit,
       skip: offset,
     });
+
+    const page = Math.floor(offset / limit) + 1;
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
   }
 
   /**
@@ -237,7 +290,7 @@ export class PosService {
    * Requires an open cash register for the current user
    */
   async checkout(
-    checkoutDto: any, // Will create proper DTO
+    checkoutDto: CheckoutDto,
     userId: string,
     tenantId: string,
   ): Promise<{
@@ -251,62 +304,119 @@ export class PosService {
   }> {
     const { items, paymentMethod, customerName, amountReceived } = checkoutDto;
 
-    // Find the user's open cash register
-    const cashRegister = await this.cashRegisterRepository.findOne({
-      where: {
-        userId,
+    return this.dataSource.transaction(async (manager) => {
+      const cashRegister = await manager.findOne(CashRegister, {
+        where: {
+          userId,
+          tenantId,
+          status: CashRegisterStatus.OPEN,
+        },
+      });
+
+      if (!cashRegister) {
+        throw new BadRequestException(
+          'No open cash register found. Please open a cash register first.',
+        );
+      }
+
+      const sale = manager.create(Sale, {
         tenantId,
-        status: CashRegisterStatus.OPEN,
-      },
-    });
+        cashRegisterId: cashRegister.id,
+        userId,
+        total: 0,
+        status: SaleStatus.PENDING,
+      });
+      const savedSale = await manager.save(sale);
 
-    if (!cashRegister) {
-      throw new BadRequestException(
-        'No open cash register found. Please open a cash register first.',
-      );
-    }
+      let runningTotal = 0;
 
-    // Create sale
-    const sale = await this.createSale(
-      { cashRegisterId: cashRegister.id },
-      tenantId,
-    );
+      for (const item of items) {
+        const product = await manager.findOne(Product, {
+          where: { id: item.productId, tenantId },
+        });
 
-    // Add all items
-    for (const item of items) {
-      await this.addItem(
-        sale.id,
-        {
+        if (!product) {
+          throw new NotFoundException('Product not found');
+        }
+
+        if (!product.isActive) {
+          throw new BadRequestException(
+            `Product "${product.name}" is not active`,
+          );
+        }
+
+        const updateResult = await manager
+          .createQueryBuilder()
+          .update(Product)
+          .set({ quantity: () => `quantity - ${item.quantity}` })
+          .where('id = :id', { id: item.productId })
+          .andWhere('"tenantId" = :tenantId', { tenantId })
+          .andWhere('quantity >= :qty', { qty: item.quantity })
+          .execute();
+
+        if (!updateResult.affected || updateResult.affected === 0) {
+          throw new BadRequestException(
+            `Insufficient stock for "${product.name}". Available: ${product.quantity}, Requested: ${item.quantity}`,
+          );
+        }
+
+        const unitPrice = Number(product.price);
+        const subtotal = unitPrice * item.quantity;
+        runningTotal += subtotal;
+
+        const saleItem = manager.create(SaleItem, {
+          tenantId,
+          saleId: savedSale.id,
           productId: item.productId,
           quantity: item.quantity,
-        },
+          unitPrice,
+          subtotal,
+        });
+        await manager.save(saleItem);
+
+        const stockMovement = manager.create(StockMovement, {
+          tenantId,
+          productId: item.productId,
+          type: MovementType.OUT,
+          quantity: item.quantity,
+          origin: 'pos',
+        });
+        await manager.save(stockMovement);
+      }
+
+      savedSale.total = runningTotal;
+      savedSale.status = SaleStatus.CLOSED;
+      savedSale.paymentMethod = paymentMethod;
+      const closedSale = await manager.save(savedSale);
+
+      const financialEntry = manager.create(FinancialEntry, {
         tenantId,
-      );
-    }
+        cashRegisterId: cashRegister.id,
+        saleId: closedSale.id,
+        type: EntryType.IN,
+        value: runningTotal,
+        description: `Sale #${closedSale.id} - ${paymentMethod}`,
+        category: 'sales',
+        paymentMethod,
+      });
+      await manager.save(financialEntry);
 
-    // Close sale
-    const closedSale = await this.closeSale(
-      sale.id,
-      { paymentMethod },
-      tenantId,
-    );
+      const total = Number(closedSale.total);
+      const change =
+        paymentMethod === PaymentMethod.CASH && amountReceived !== undefined
+          ? amountReceived - total
+          : undefined;
 
-    // Calculate change if payment is cash
-    const total = Number(closedSale.total);
-    const change =
-      paymentMethod === 'cash' && amountReceived
-        ? amountReceived - total
-        : undefined;
-
-    return {
-      saleId: closedSale.id,
-      receiptNumber: closedSale.id.substring(0, 8).toUpperCase(),
-      total,
-      change,
-      createdAt: closedSale.createdAt.toISOString(),
-      paymentMethod,
-      customerName,
-    };
+      return {
+        saleId: closedSale.id,
+        receiptNumber: closedSale.id.substring(0, 8).toUpperCase(),
+        total,
+        change,
+        createdAt: closedSale.createdAt.toISOString(),
+        paymentMethod,
+        customerName,
+      };
+    });
   }
 
   /**
@@ -322,10 +432,7 @@ export class PosService {
 
     const total = items.reduce((sum, item) => sum + Number(item.subtotal), 0);
 
-    await this.saleRepository.update(
-      { id: saleId, tenantId },
-      { total },
-    );
+    await this.saleRepository.update({ id: saleId, tenantId }, { total });
   }
 
   /**
@@ -340,7 +447,9 @@ export class PosService {
 
     // Apply date filters if provided
     if (startDate) {
-      query.andWhere('sale.createdAt >= :startDate', { startDate: new Date(startDate) });
+      query.andWhere('sale.createdAt >= :startDate', {
+        startDate: new Date(startDate),
+      });
     }
     if (endDate) {
       const endDateTime = new Date(endDate);
@@ -355,19 +464,24 @@ export class PosService {
     const totalSales = sales.length;
     const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
     const totalItems = sales.reduce((sum, s) => {
-      return sum + (s.items?.reduce((itemSum, item) => itemSum + item.quantity, 0) || 0);
+      return (
+        sum +
+        (s.items?.reduce((itemSum, item) => itemSum + item.quantity, 0) || 0)
+      );
     }, 0);
 
     // Payment methods breakdown
-    const paymentMethods = {
-      cash: 0,
-      card: 0,
-      pix: 0,
+    const paymentMethods: Record<string, number> = {
+      [PaymentMethod.CASH]: 0,
+      [PaymentMethod.CREDIT_CARD]: 0,
+      [PaymentMethod.DEBIT_CARD]: 0,
+      [PaymentMethod.PIX]: 0,
     };
 
     sales.forEach((sale) => {
       if (sale.paymentMethod) {
-        paymentMethods[sale.paymentMethod] += Number(sale.total);
+        paymentMethods[sale.paymentMethod] =
+          (paymentMethods[sale.paymentMethod] || 0) + Number(sale.total);
       }
     });
 

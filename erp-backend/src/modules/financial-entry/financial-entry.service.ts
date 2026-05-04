@@ -7,7 +7,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { FinancialEntry, EntryType } from './entities/financial-entry.entity';
 import { CreateFinancialEntryDto } from './dto/create-financial-entry.dto';
-import { CashRegister, CashRegisterStatus } from '../cash-register/entities/cash-register.entity';
+import {
+  CashRegister,
+  CashRegisterStatus,
+} from '../cash-register/entities/cash-register.entity';
 
 @Injectable()
 export class FinancialEntryService {
@@ -61,6 +64,7 @@ export class FinancialEntryService {
     cashRegisterId: string,
     tenantId: string,
     description?: string,
+    paymentMethod?: string,
   ): Promise<FinancialEntry> {
     // Verify cash register exists and is open
     const cashRegister = await this.cashRegisterRepository.findOne({
@@ -72,9 +76,7 @@ export class FinancialEntryService {
     });
 
     if (!cashRegister) {
-      throw new BadRequestException(
-        'Cash register not found or is closed.',
-      );
+      throw new BadRequestException('Cash register not found or is closed.');
     }
 
     const entry = this.financialEntryRepository.create({
@@ -85,6 +87,7 @@ export class FinancialEntryService {
       value,
       description: description || `Sale #${saleId}`,
       category: 'sales',
+      paymentMethod,
     });
 
     return this.financialEntryRepository.save(entry);
@@ -92,10 +95,13 @@ export class FinancialEntryService {
 
   /**
    * Get all entries for a specific cash register
+   * CASHIER can only see entries from their own register
    */
   async getEntriesByRegister(
     cashRegisterId: string,
     tenantId: string,
+    userId?: string,
+    userRole?: string,
   ): Promise<FinancialEntry[]> {
     // Verify cash register belongs to tenant
     const cashRegister = await this.cashRegisterRepository.findOne({
@@ -104,6 +110,13 @@ export class FinancialEntryService {
 
     if (!cashRegister) {
       throw new NotFoundException('Cash register not found');
+    }
+
+    // CASHIER can only see entries from their own register
+    if (userRole === 'cashier' && cashRegister.userId !== userId) {
+      throw new BadRequestException(
+        'You can only view entries from your own cash register',
+      );
     }
 
     return this.financialEntryRepository.find({
