@@ -11,6 +11,7 @@ import { Tenant } from '../../tenant/entities/tenant.entity';
 import { CashRegister } from '../../cash-register/entities/cash-register.entity';
 import { SaleItem } from './sale-item.entity';
 import { User } from '../../users/entities/user.entity';
+import { Customer } from '../../customers/entities/customer.entity';
 
 export enum PaymentMethod {
   CASH = 'cash',
@@ -50,6 +51,13 @@ export class Sale {
   @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'userId' })
   user: User;
+
+  @Column('uuid', { nullable: true })
+  customerId: string;
+
+  @ManyToOne(() => Customer, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'customerId' })
+  customer: Customer;
 
   @Column('decimal', { precision: 10, scale: 2, default: 0 })
   total: number;

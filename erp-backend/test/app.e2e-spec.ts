@@ -19,6 +19,7 @@ describe('AppController (e2e)', () => {
   it('/ (GET)', () => {
     return request(app.getHttpServer())
       .get('/')
+      .set('X-Tenant-ID', '550e8400-e29b-41d4-a716-446655440001')
       .expect(200)
       .expect('Hello World!');
   });

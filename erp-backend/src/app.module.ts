@@ -12,6 +12,8 @@ import { CashRegisterModule } from './modules/cash-register/cash-register.module
 import { FinancialEntryModule } from './modules/financial-entry/financial-entry.module';
 import { PosModule } from './modules/pos/pos.module';
 import { BackofficeModule } from './modules/backoffice/backoffice.module';
+import { CustomersModule } from './modules/customers/customers.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 
 @Module({
@@ -43,6 +45,8 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
     FinancialEntryModule,
     PosModule,
     BackofficeModule,
+    CustomersModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

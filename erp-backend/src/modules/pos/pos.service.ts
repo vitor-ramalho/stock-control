@@ -33,6 +33,7 @@ import {
   FinancialEntry,
   EntryType,
 } from '../financial-entry/entities/financial-entry.entity';
+import { Customer } from '../customers/entities/customer.entity';
 
 @Injectable()
 export class PosService {
@@ -301,8 +302,10 @@ export class PosService {
     createdAt: string;
     paymentMethod: string;
     customerName?: string;
+    customerId?: string;
   }> {
-    const { items, paymentMethod, customerName, amountReceived } = checkoutDto;
+    const { items, paymentMethod, customerName, customerId, amountReceived } =
+      checkoutDto;
 
     return this.dataSource.transaction(async (manager) => {
       const cashRegister = await manager.findOne(CashRegister, {
@@ -319,10 +322,22 @@ export class PosService {
         );
       }
 
+      let customer: Customer | null = null;
+      if (customerId) {
+        customer = await manager.findOne(Customer, {
+          where: { id: customerId, tenantId, isActive: true },
+        });
+
+        if (!customer) {
+          throw new NotFoundException('Customer not found');
+        }
+      }
+
       const sale = manager.create(Sale, {
         tenantId,
         cashRegisterId: cashRegister.id,
         userId,
+        customerId: customer ? customer.id : undefined,
         total: 0,
         status: SaleStatus.PENDING,
       });
@@ -415,6 +430,7 @@ export class PosService {
         createdAt: closedSale.createdAt.toISOString(),
         paymentMethod,
         customerName,
+        customerId: customer ? customer.id : undefined,
       };
     });
   }

@@ -6,6 +6,7 @@ import {
   IsArray,
   ValidateNested,
   Min,
+  IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaymentMethod } from '../entities/sale.entity';
@@ -35,6 +36,10 @@ export class CheckoutDto {
   @IsString()
   @IsOptional()
   customerName?: string;
+
+  @IsOptional()
+  @IsUUID()
+  customerId?: string;
 
   @IsNumber()
   @Min(0)
