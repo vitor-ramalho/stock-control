@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircle, CheckCircle2, Info, XCircle } from 'lucide-react';
+import { CheckCircle2, Info, XCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface ErrorStateProps {

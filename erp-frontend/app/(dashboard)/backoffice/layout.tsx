@@ -9,7 +9,7 @@ export default function BackofficeLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated, hasRole } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -19,12 +19,12 @@ export default function BackofficeLayout({
     }
 
     // Check if user is superadmin
-    if (user?.role !== 'superadmin') {
+    if (!hasRole(['superadmin'])) {
       router.push('/dashboard');
     }
-  }, [isAuthenticated, user, router]);
+  }, [hasRole, isAuthenticated, router]);
 
-  if (!isAuthenticated || user?.role !== 'superadmin') {
+  if (!isAuthenticated || !hasRole(['superadmin'])) {
     return null;
   }
 

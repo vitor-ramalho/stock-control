@@ -14,8 +14,9 @@ import { Store, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { withAuth } from '@/components/auth/with-auth';
 
-export default function POSPage() {
+function POSPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
@@ -35,6 +36,9 @@ export default function POSPage() {
     const receipt = {
       saleId: data.saleId,
       receiptNumber: data.receiptNumber,
+      subtotal: data.subtotal,
+      discount: data.discount,
+      tax: data.tax,
       total: data.total,
       change: data.change,
       createdAt: data.createdAt,
@@ -141,3 +145,5 @@ export default function POSPage() {
     </div>
   );
 }
+
+export default withAuth(POSPage, ['admin', 'manager', 'cashier']);

@@ -8,8 +8,9 @@ import { TenantTable } from '@/components/backoffice/tenant-table';
 import { TenantDetailsDrawer } from '@/components/backoffice/tenant-details-drawer';
 import { Building2 } from 'lucide-react';
 import { useBackofficeTenants } from '@/hooks/use-backoffice';
+import { withAuth } from '@/components/auth/with-auth';
 
-export default function BackofficePage() {
+function BackofficePage() {
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
 
   const { data: tenants, isLoading, error } = useBackofficeTenants();
@@ -97,3 +98,5 @@ export default function BackofficePage() {
     </div>
   );
 }
+
+export default withAuth(BackofficePage, ['superadmin']);

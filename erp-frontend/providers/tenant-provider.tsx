@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
+import { ReactNode, createContext, useContext, useState } from 'react';
 import { getTenantId, setTenantId } from '@/lib/tenant';
 
 interface TenantContextType {
@@ -11,13 +11,7 @@ interface TenantContextType {
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
 export function TenantProvider({ children }: { children: ReactNode }) {
-  const [tenantId, setTenantState] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Initialize tenant from storage or env
-    const id = getTenantId();
-    setTenantState(id);
-  }, []);
+  const [tenantId, setTenantState] = useState<string | null>(() => getTenantId());
 
   const setTenant = (id: string) => {
     setTenantId(id);

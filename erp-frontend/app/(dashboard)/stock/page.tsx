@@ -10,8 +10,9 @@ import { StockMovementDialog } from '@/components/stock/stock-movement-dialog';
 import { Product } from '@/types';
 import { Archive, TrendingDown, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { withAuth } from '@/components/auth/with-auth';
 
-export default function StockPage() {
+function StockPage() {
   const { data: products, isLoading, error } = useProductsWithStock();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [dialogType, setDialogType] = useState<'in' | 'out'>('in');
@@ -140,3 +141,5 @@ export default function StockPage() {
     </div>
   );
 }
+
+export default withAuth(StockPage, ['admin', 'manager']);

@@ -14,17 +14,48 @@ export default function DashboardPage() {
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['dashboard'],
     queryFn: async () => {
-      try {
-        const response = await api.get('/reports/dashboard');
-        return response.data;
-      } catch {
-        // Return empty stats if endpoint doesn't exist yet
-        return {
-          todaySales: { count: 0, total: 0 },
-          openCashRegister: null,
-          lowStockProducts: [],
-        };
-      }
+      const today = new Date().toISOString().split('T')[0];
+
+      const [salesResult, cashResult, productsResult] = await Promise.allSettled([
+        api.get('/sales', { params: { page: 1, limit: 100, startDate: today, endDate: today } }),
+        api.get('/cash/current'),
+        api.get('/products'),
+      ]);
+
+      const salesData =
+        salesResult.status === 'fulfilled'
+          ? salesResult.value.data
+          : { data: [], total: 0 };
+
+      const productsData =
+        productsResult.status === 'fulfilled' ? productsResult.value.data : [];
+
+      const todaySalesList = Array.isArray(salesData?.data)
+        ? salesData.data
+        : Array.isArray(salesData)
+          ? salesData
+          : [];
+
+      const todaySalesTotal = todaySalesList.reduce(
+        (sum: number, sale: { total?: number | string }) =>
+          sum + Number(sale.total || 0),
+        0,
+      );
+
+      const lowStockProducts = (Array.isArray(productsData) ? productsData : []).filter(
+        (product: { quantity?: number; isActive?: boolean }) =>
+          (product.quantity || 0) <= 5 && product.isActive,
+      );
+
+      return {
+        todaySales: {
+          count: typeof salesData?.total === 'number' ? salesData.total : todaySalesList.length,
+          total: todaySalesTotal,
+        },
+        openCashRegister:
+          cashResult.status === 'fulfilled' ? cashResult.value.data : null,
+        lowStockProducts,
+      };
     },
   });
 

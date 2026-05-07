@@ -48,5 +48,15 @@ export class CheckoutDto {
   @IsNumber()
   @Min(0)
   @IsOptional()
+  discount?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  tax?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
   amountReceived?: number;
 }

@@ -25,13 +25,17 @@ import {
 } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCheckout, CheckoutPayload, CheckoutResponse } from '@/hooks/use-pos';
+import { useSearchCustomers } from '@/hooks/use-customers';
 import { usePOSCartStore } from '@/store/pos-cart';
 import { CreditCard, Banknote, Smartphone } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 const checkoutSchema = z.object({
-  paymentMethod: z.enum(['cash', 'card', 'pix']),
+  paymentMethod: z.enum(['cash', 'credit_card', 'debit_card', 'pix']),
   customerName: z.string().optional(),
+  customerId: z.string().optional(),
+  discount: z.number().min(0).optional(),
+  tax: z.number().min(0).optional(),
   amountReceived: z.number().optional(),
 });
 
@@ -44,22 +48,30 @@ interface CheckoutDialogProps {
 }
 
 export function CheckoutDialog({ open, onOpenChange, onSuccess }: CheckoutDialogProps) {
-  const { items, getCartSubtotal, getCartTotal } = usePOSCartStore();
+  const { items, getCartTotal } = usePOSCartStore();
   const checkoutMutation = useCheckout();
   const [change, setChange] = useState(0);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const { data: customerResults = [] } = useSearchCustomers(customerSearch);
 
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       paymentMethod: 'cash',
       customerName: '',
+      customerId: '',
+      discount: 0,
+      tax: 0,
       amountReceived: undefined,
     },
   });
 
   const paymentMethod = form.watch('paymentMethod');
   const amountReceived = form.watch('amountReceived');
-  const total = getCartTotal();
+  const discount = form.watch('discount') || 0;
+  const tax = form.watch('tax') || 0;
+  const subtotal = getCartTotal();
+  const total = Math.max(0, subtotal - discount + tax);
 
   // Calculate change for cash payments
   useEffect(() => {
@@ -88,10 +100,11 @@ export function CheckoutDialog({ open, onOpenChange, onSuccess }: CheckoutDialog
       })),
       paymentMethod: data.paymentMethod,
       customerName: data.customerName || undefined,
-      subtotal: getCartSubtotal(),
-      total: getCartTotal(),
+      customerId: data.customerId || undefined,
+      discount: data.discount || 0,
+      tax: data.tax || 0,
+      total,
       amountReceived: data.paymentMethod === 'cash' ? data.amountReceived : undefined,
-      change: data.paymentMethod === 'cash' ? change : undefined,
     };
 
     try {
@@ -123,8 +136,20 @@ export function CheckoutDialog({ open, onOpenChange, onSuccess }: CheckoutDialog
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Subtotal:</span>
-              <span className="font-medium">${getCartSubtotal().toFixed(2)}</span>
+              <span className="font-medium">${subtotal.toFixed(2)}</span>
             </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Discount:</span>
+                <span className="font-medium text-red-600">- ${discount.toFixed(2)}</span>
+              </div>
+            )}
+            {tax > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Tax:</span>
+                <span className="font-medium">+ ${tax.toFixed(2)}</span>
+              </div>
+            )}
             <Separator />
             <div className="flex justify-between">
               <span className="font-semibold">Total:</span>
@@ -147,7 +172,7 @@ export function CheckoutDialog({ open, onOpenChange, onSuccess }: CheckoutDialog
                       <RadioGroup
                         onValueChange={field.onChange}
                         value={field.value}
-                        className="grid grid-cols-3 gap-3"
+                        className="grid grid-cols-2 gap-3 sm:grid-cols-4"
                       >
                         <div>
                           <RadioGroupItem
@@ -166,16 +191,31 @@ export function CheckoutDialog({ open, onOpenChange, onSuccess }: CheckoutDialog
 
                         <div>
                           <RadioGroupItem
-                            value="card"
-                            id="card"
+                            value="credit_card"
+                            id="credit_card"
                             className="peer sr-only"
                           />
                           <Label
-                            htmlFor="card"
+                            htmlFor="credit_card"
                             className="flex flex-col items-center justify-center gap-2 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                           >
                             <CreditCard className="h-6 w-6" />
-                            <span className="text-sm font-medium">Card</span>
+                            <span className="text-sm font-medium">Crédito</span>
+                          </Label>
+                        </div>
+
+                        <div>
+                          <RadioGroupItem
+                            value="debit_card"
+                            id="debit_card"
+                            className="peer sr-only"
+                          />
+                          <Label
+                            htmlFor="debit_card"
+                            className="flex flex-col items-center justify-center gap-2 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                          >
+                            <CreditCard className="h-6 w-6" />
+                            <span className="text-sm font-medium">Débito</span>
                           </Label>
                         </div>
 
@@ -195,6 +235,49 @@ export function CheckoutDialog({ open, onOpenChange, onSuccess }: CheckoutDialog
                   </FormItem>
                 )}
               />
+
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="discount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Discount</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={subtotal}
+                          step="0.01"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="tax"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tax</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               {/* Amount Received (Cash only) */}
               {paymentMethod === 'cash' && (
@@ -254,6 +337,61 @@ export function CheckoutDialog({ open, onOpenChange, onSuccess }: CheckoutDialog
                     <FormLabel>Customer Name (Optional)</FormLabel>
                     <FormControl>
                       <Input placeholder="Walk-in customer" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Customer Selection */}
+              <FormField
+                control={form.control}
+                name="customerId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Customer Link (Optional)</FormLabel>
+                    <FormControl>
+                      <div className="space-y-2">
+                        <Input
+                          placeholder="Search by name, email, phone or document"
+                          value={customerSearch}
+                          onChange={(e) => setCustomerSearch(e.target.value)}
+                        />
+
+                        {customerSearch.trim().length >= 2 && (
+                          <div className="max-h-36 overflow-y-auto rounded-md border p-2 space-y-1">
+                            {customerResults.length === 0 ? (
+                              <p className="text-sm text-muted-foreground px-2 py-1">
+                                No active customers found
+                              </p>
+                            ) : (
+                              customerResults.map((customer) => (
+                                <button
+                                  key={customer.id}
+                                  type="button"
+                                  className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+                                  onClick={() => {
+                                    field.onChange(customer.id);
+                                    form.setValue('customerName', customer.name);
+                                    setCustomerSearch(customer.name);
+                                  }}
+                                >
+                                  <div className="font-medium">{customer.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {customer.email || customer.phone || customer.document || 'No extra info'}
+                                  </div>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
+
+                        {field.value && (
+                          <p className="text-xs text-muted-foreground">
+                            Selected customer ID: {field.value}
+                          </p>
+                        )}
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

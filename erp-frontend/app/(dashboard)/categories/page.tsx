@@ -11,8 +11,9 @@ import { EditCategoryDialog } from '@/components/categories/edit-category-dialog
 import { DeleteCategoryDialog } from '@/components/categories/delete-category-dialog';
 import { Category } from '@/types';
 import { FolderTree } from 'lucide-react';
+import { withAuth } from '@/components/auth/with-auth';
 
-export default function CategoriesPage() {
+function CategoriesPage() {
   const { data: categories, isLoading, error } = useCategories();
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
@@ -98,3 +99,5 @@ export default function CategoriesPage() {
     </div>
   );
 }
+
+export default withAuth(CategoriesPage, ['admin', 'manager']);

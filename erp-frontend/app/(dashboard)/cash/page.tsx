@@ -13,8 +13,9 @@ import { CloseCashRegisterDialog } from '@/components/cash-register/close-cash-r
 import { MovementsList } from '@/components/cash-register/movements-list';
 import { Wallet, Plus, Lock, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { withAuth } from '@/components/auth/with-auth';
 
-export default function CashRegisterPage() {
+function CashRegisterPage() {
   const { data: cashRegister, isLoading, error, refetch } = useCurrentCashRegister();
   const { data: movements = [] } = useCashRegisterMovements(cashRegister?.id);
   
@@ -147,3 +148,5 @@ export default function CashRegisterPage() {
     </div>
   );
 }
+
+export default withAuth(CashRegisterPage, ['admin', 'manager', 'cashier']);

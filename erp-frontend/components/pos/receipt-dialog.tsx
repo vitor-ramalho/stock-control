@@ -14,6 +14,9 @@ import { format } from 'date-fns';
 interface ReceiptData {
   saleId: string;
   receiptNumber: string;
+  subtotal?: number;
+  discount?: number;
+  tax?: number;
   total: number;
   change?: number;
   createdAt: string;
@@ -105,6 +108,27 @@ export function ReceiptDialog({ open, onOpenChange, data, onNewSale }: ReceiptDi
 
           {/* Totals */}
           <div className="space-y-2">
+            {data.subtotal !== undefined && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="font-medium">${data.subtotal.toFixed(2)}</span>
+              </div>
+            )}
+
+            {data.discount !== undefined && data.discount > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Discount</span>
+                <span className="font-medium text-red-600">- ${data.discount.toFixed(2)}</span>
+              </div>
+            )}
+
+            {data.tax !== undefined && data.tax > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Tax</span>
+                <span className="font-medium">+ ${data.tax.toFixed(2)}</span>
+              </div>
+            )}
+
             <div className="flex justify-between">
               <span className="font-semibold text-lg">Total</span>
               <span className="font-bold text-2xl text-green-600">

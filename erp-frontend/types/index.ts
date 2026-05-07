@@ -32,6 +32,20 @@ export interface Category {
   updatedAt: string;
 }
 
+export interface Customer {
+  id: string;
+  tenantId: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  document?: string;
+  address?: string;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -106,6 +120,8 @@ export interface Sale {
   cashRegister?: CashRegister;
   userId: string;
   user?: User;
+  customerId?: string;
+  customer?: Customer;
   items?: SaleItem[];
   tenantId: string;
   createdAt: string;
@@ -140,38 +156,48 @@ export interface DashboardStats {
 }
 
 export interface SalesReport {
-  startDate: string;
-  endDate: string;
-  totalSales: number;
-  totalRevenue: number;
-  averageTicket: number;
-  salesByPaymentMethod: {
-    cash: number;
-    card: number;
-    pix: number;
+  period: {
+    start: string | null;
+    end: string | null;
   };
-  topProducts: Array<{
-    product: Product;
-    quantity: number;
-    revenue: number;
-  }>;
+  summary: {
+    totalSales: number;
+    totalRevenue: number;
+    averageTicket: number;
+    totalItems: number;
+  };
+  byPaymentMethod: Record<string, number>;
+  data: Sale[];
 }
 
 export interface StockReport {
+  period: {
+    start: string | null;
+    end: string | null;
+  };
   productId?: string;
-  movements: StockMovement[];
-  totalIn: number;
-  totalOut: number;
-  currentStock: number;
+  summary: {
+    totalMovements: number;
+    totalIn: number;
+    totalOut: number;
+    netMovement: number;
+    currentProductQuantity: number | null;
+  };
+  data: StockMovement[];
 }
 
 export interface CashReport {
   date: string;
-  initialBalance: number;
-  finalBalance: number;
-  totalIn: number;
-  totalOut: number;
+  registers: CashRegister[];
   entries: FinancialEntry[];
+  summary: {
+    totalRegisters: number;
+    totalInitialBalance: number;
+    totalFinalBalance: number;
+    totalIn: number;
+    totalOut: number;
+    netBalance: number;
+  };
 }
 
 // Auth types
@@ -250,8 +276,19 @@ export interface FinancialEntryFormData {
 }
 
 export interface CheckoutFormData {
-  paymentMethod: 'cash' | 'card' | 'pix';
+  paymentMethod: 'cash' | 'credit_card' | 'debit_card' | 'pix';
+  customerId?: string;
   discount?: number;
+}
+
+export interface CustomerFormData {
+  name: string;
+  email?: string;
+  phone?: string;
+  document?: string;
+  address?: string;
+  notes?: string;
+  isActive?: boolean;
 }
 
 // Cart item for POS

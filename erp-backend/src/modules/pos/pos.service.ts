@@ -298,14 +298,25 @@ export class PosService {
     saleId: string;
     receiptNumber: string;
     total: number;
+    subtotal: number;
+    discount: number;
+    tax: number;
     change?: number;
     createdAt: string;
     paymentMethod: string;
     customerName?: string;
     customerId?: string;
   }> {
-    const { items, paymentMethod, customerName, customerId, amountReceived } =
-      checkoutDto;
+    const {
+      items,
+      paymentMethod,
+      customerName,
+      customerId,
+      amountReceived,
+      discount = 0,
+      tax = 0,
+      total: requestedTotal,
+    } = checkoutDto;
 
     return this.dataSource.transaction(async (manager) => {
       const cashRegister = await manager.findOne(CashRegister, {
@@ -339,11 +350,14 @@ export class PosService {
         userId,
         customerId: customer ? customer.id : undefined,
         total: 0,
+        subtotal: 0,
+        discount,
+        tax,
         status: SaleStatus.PENDING,
       });
       const savedSale = await manager.save(sale);
 
-      let runningTotal = 0;
+      let runningSubtotal = 0;
 
       for (const item of items) {
         const product = await manager.findOne(Product, {
@@ -377,7 +391,7 @@ export class PosService {
 
         const unitPrice = Number(product.price);
         const subtotal = unitPrice * item.quantity;
-        runningTotal += subtotal;
+        runningSubtotal += subtotal;
 
         const saleItem = manager.create(SaleItem, {
           tenantId,
@@ -399,7 +413,26 @@ export class PosService {
         await manager.save(stockMovement);
       }
 
-      savedSale.total = runningTotal;
+      if (discount > runningSubtotal) {
+        throw new BadRequestException('Discount cannot exceed subtotal');
+      }
+
+      const calculatedTotal = runningSubtotal - discount + tax;
+
+      if (calculatedTotal < 0) {
+        throw new BadRequestException('Calculated total cannot be negative');
+      }
+
+      if (Math.abs(requestedTotal - calculatedTotal) > 0.01) {
+        throw new BadRequestException(
+          'Checkout total does not match server calculation',
+        );
+      }
+
+      savedSale.subtotal = runningSubtotal;
+      savedSale.discount = discount;
+      savedSale.tax = tax;
+      savedSale.total = calculatedTotal;
       savedSale.status = SaleStatus.CLOSED;
       savedSale.paymentMethod = paymentMethod;
       const closedSale = await manager.save(savedSale);
@@ -409,7 +442,7 @@ export class PosService {
         cashRegisterId: cashRegister.id,
         saleId: closedSale.id,
         type: EntryType.IN,
-        value: runningTotal,
+        value: calculatedTotal,
         description: `Sale #${closedSale.id} - ${paymentMethod}`,
         category: 'sales',
         paymentMethod,
@@ -417,6 +450,9 @@ export class PosService {
       await manager.save(financialEntry);
 
       const total = Number(closedSale.total);
+      const subtotal = Number(closedSale.subtotal);
+      const appliedDiscount = Number(closedSale.discount);
+      const appliedTax = Number(closedSale.tax);
       const change =
         paymentMethod === PaymentMethod.CASH && amountReceived !== undefined
           ? amountReceived - total
@@ -426,6 +462,9 @@ export class PosService {
         saleId: closedSale.id,
         receiptNumber: closedSale.id.substring(0, 8).toUpperCase(),
         total,
+        subtotal,
+        discount: appliedDiscount,
+        tax: appliedTax,
         change,
         createdAt: closedSale.createdAt.toISOString(),
         paymentMethod,

@@ -22,10 +22,11 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, format } from 'date-fns';
 import { formatCurrency } from '@/lib/currency';
+import { withAuth } from '@/components/auth/with-auth';
 
 type DateFilter = 'all' | 'today' | 'week' | 'month';
 
-export default function SalesPage() {
+function SalesPage() {
   const [page, setPage] = useState(1);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
@@ -243,3 +244,5 @@ export default function SalesPage() {
     </div>
   );
 }
+
+export default withAuth(SalesPage, ['admin', 'manager', 'cashier']);

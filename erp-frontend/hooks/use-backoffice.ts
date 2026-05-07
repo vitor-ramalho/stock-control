@@ -20,6 +20,13 @@ interface TenantUser {
   createdAt: string;
 }
 
+interface TenantUserFormData {
+  name: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'manager' | 'cashier' | 'user';
+}
+
 export function useBackofficeTenants() {
   return useQuery<Tenant[]>({
     queryKey: ['backoffice-tenants'],
@@ -68,6 +75,66 @@ export function useToggleTenantStatus() {
     },
     onError: () => {
       toast.error('Falha ao atualizar status da empresa');
+    },
+  });
+}
+
+export function useCreateTenantUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      tenantId,
+      data,
+    }: {
+      tenantId: string;
+      data: TenantUserFormData;
+    }) => {
+      const response = await api.post(`/backoffice/tenants/${tenantId}/users`, data);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['backoffice-tenant-users', variables.tenantId],
+      });
+      toast.success('Usuário criado com sucesso!');
+    },
+    onError: (error) => {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Falha ao criar usuário');
+    },
+  });
+}
+
+export function useToggleTenantUserStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      tenantId,
+      userId,
+      isActive,
+    }: {
+      tenantId: string;
+      userId: string;
+      isActive: boolean;
+    }) => {
+      const response = await api.patch(
+        `/backoffice/tenants/${tenantId}/users/${userId}/status`,
+        {
+          isActive,
+        },
+      );
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['backoffice-tenant-users', variables.tenantId],
+      });
+      toast.success('Status do usuário atualizado com sucesso!');
+    },
+    onError: () => {
+      toast.error('Falha ao atualizar status do usuário');
     },
   });
 }

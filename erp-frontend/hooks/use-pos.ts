@@ -8,24 +8,27 @@ export interface CheckoutPayload {
     quantity: number;
     unitPrice: number;
   }>;
-  paymentMethod: 'cash' | 'card' | 'pix';
+  paymentMethod: 'cash' | 'credit_card' | 'debit_card' | 'pix';
   customerName?: string;
-  subtotal: number;
+  customerId?: string;
   discount?: number;
   tax?: number;
   total: number;
   amountReceived?: number;
-  change?: number;
 }
 
 export interface CheckoutResponse {
   saleId: string;
   receiptNumber: string;
+  subtotal?: number;
+  discount?: number;
+  tax?: number;
   total: number;
   change?: number;
   createdAt: string;
   paymentMethod?: string;
   customerName?: string;
+  customerId?: string;
 }
 
 // Checkout mutation

@@ -3,6 +3,8 @@ import { persist } from 'zustand/middleware';
 import { User } from '@/types';
 import { clearTenantId } from './tenant';
 
+const normalizeRole = (role: string) => role.toLowerCase();
+
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -38,7 +40,10 @@ export const useAuthStore = create<AuthState>()(
       },
       hasRole: (roles) => {
         const { user } = get();
-        return !!user && roles.includes(user.role);
+        if (!user) return false;
+
+        const normalizedUserRole = normalizeRole(user.role);
+        return roles.some((role) => normalizeRole(role) === normalizedUserRole);
       },
     }),
     {

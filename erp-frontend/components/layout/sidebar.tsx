@@ -13,27 +13,31 @@ import {
   Monitor,
   LogOut,
   FileText,
+  Users,
   Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const navigation = [
-  { name: 'Painel', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Produtos', href: '/products', icon: Package },
-  { name: 'Categorias', href: '/categories', icon: FolderTree },
-  { name: 'Estoque', href: '/stock', icon: Archive },
-  { name: 'Caixa', href: '/cash', icon: Wallet },
-  { name: 'Vendas', href: '/sales', icon: ShoppingCart },
-  { name: 'PDV', href: '/pos', icon: Monitor },
-  { name: 'Relatórios', href: '/reports', icon: FileText },
+  { name: 'Painel', href: '/dashboard', icon: LayoutDashboard, visible: () => true },
+  { name: 'Produtos', href: '/products', icon: Package, visible: (p: ReturnType<typeof usePermissions>) => p.canManageProducts },
+  { name: 'Categorias', href: '/categories', icon: FolderTree, visible: (p: ReturnType<typeof usePermissions>) => p.canManageCategories },
+  { name: 'Estoque', href: '/stock', icon: Archive, visible: (p: ReturnType<typeof usePermissions>) => p.canManageStock },
+  { name: 'Caixa', href: '/cash', icon: Wallet, visible: (p: ReturnType<typeof usePermissions>) => p.canAccessCash },
+  { name: 'Vendas', href: '/sales', icon: ShoppingCart, visible: (p: ReturnType<typeof usePermissions>) => p.canAccessSales },
+  { name: 'PDV', href: '/pos', icon: Monitor, visible: (p: ReturnType<typeof usePermissions>) => p.canAccessPOS },
+  { name: 'Clientes', href: '/customers', icon: Users, visible: (p: ReturnType<typeof usePermissions>) => p.canAccessCustomers },
+  { name: 'Relatórios', href: '/reports', icon: FileText, visible: (p: ReturnType<typeof usePermissions>) => p.canAccessReports },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const permissions = usePermissions();
   const logout = useLogout();
 
   return (
@@ -44,7 +48,7 @@ export function Sidebar() {
       </div>
       
       <nav className="flex-1 space-y-1 px-3">
-        {navigation.map((item) => {
+        {navigation.filter((item) => item.visible(permissions)).map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
           return (
@@ -65,7 +69,7 @@ export function Sidebar() {
         })}
 
         {/* Backoffice (superadmin only) */}
-        {user?.role === 'superadmin' && (
+        {permissions.isSuperadmin && (
           <>
             <Separator className="bg-gray-700 my-2" />
             <Link

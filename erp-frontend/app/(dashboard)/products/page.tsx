@@ -21,6 +21,7 @@ import { PageLoading } from '@/components/ui/loading-spinner';
 import { ErrorState, EmptyState } from '@/components/ui/states';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Product } from '@/types';
+import { withAuth } from '@/components/auth/with-auth';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -35,7 +36,7 @@ const productSchema = z.object({
 
 type ProductFormData = z.infer<typeof productSchema>;
 
-export default function ProductsPage() {
+function ProductsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -370,3 +371,5 @@ export default function ProductsPage() {
     </div>
   );
 }
+
+export default withAuth(ProductsPage, ['admin', 'manager']);

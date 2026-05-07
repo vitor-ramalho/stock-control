@@ -7,7 +7,7 @@ import { PageLoading } from '@/components/ui/loading-spinner';
 
 export function withAuth<P extends object>(
   Component: React.ComponentType<P>,
-  requiredRoles?: Array<'ADMIN' | 'MANAGER' | 'CASHIER' | 'USER'>
+  requiredRoles?: string[]
 ) {
   return function AuthenticatedComponent(props: P) {
     const router = useRouter();

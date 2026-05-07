@@ -8,11 +8,13 @@ import { toast } from 'sonner';
 export function useAuth() {
   const { user, token, setAuth, logout, isAuthenticated, hasRole } = useAuthStore();
 
+  const hasAnyRole = (roles: string[]) => hasRole(roles as User['role'][]);
+
   return {
     user,
     token,
     isAuthenticated: isAuthenticated(),
-    hasRole,
+    hasRole: hasAnyRole,
     setAuth,
     logout,
   };
