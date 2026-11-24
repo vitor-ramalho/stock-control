@@ -9,6 +9,6 @@ import { FinancialEntry } from '../financial-entry/entities/financial-entry.enti
   imports: [TypeOrmModule.forFeature([CashRegister, FinancialEntry])],
   controllers: [CashRegisterController],
   providers: [CashRegisterService],
-  exports: [CashRegisterService], // Export for use in Sales/POS module
+  exports: [CashRegisterService],
 })
 export class CashRegisterModule {}

@@ -11,6 +11,7 @@ import {
   CashRegister,
   CashRegisterStatus,
 } from '../cash-register/entities/cash-register.entity';
+import { UserRole } from '../users/entities/user.entity';
 
 @Injectable()
 export class FinancialEntryService {
@@ -113,7 +114,7 @@ export class FinancialEntryService {
     }
 
     // CASHIER can only see entries from their own register
-    if (userRole === 'cashier' && cashRegister.userId !== userId) {
+    if (userRole === UserRole.CASHIER && cashRegister.userId !== userId) {
       throw new BadRequestException(
         'You can only view entries from your own cash register',
       );

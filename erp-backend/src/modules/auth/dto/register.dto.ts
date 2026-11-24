@@ -1,43 +1,50 @@
-import { IsEmail, IsString, IsNotEmpty, MinLength, IsOptional, ValidateNested } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  IsNotEmpty,
+  MinLength,
+  IsOptional,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CompanyDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   @IsString()
   @IsOptional()
-  phone?: string;
+  phone!: string;
 }
 
 export class UserDto {
   @IsString()
   @IsNotEmpty()
-  fullName: string;
+  fullName!: string;
 
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(6)
-  password: string;
+  password!: string;
 }
 
 export class RegisterDto {
   @ValidateNested()
   @Type(() => CompanyDto)
   @IsNotEmpty()
-  company: CompanyDto;
+  company!: CompanyDto;
 
   @ValidateNested()
   @Type(() => UserDto)
   @IsNotEmpty()
-  user: UserDto;
+  user!: UserDto;
 }

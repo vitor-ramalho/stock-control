@@ -81,10 +81,17 @@ npm install
 
 2. Configure environment variables:
 ```bash
-cp .env.example .env
+cp .env.development.example .env.development
+cp .env.development .env
 ```
 
-Edit `.env` with your database credentials:
+For staging and production, use:
+```bash
+cp .env.staging.example .env.staging
+cp .env.production.example .env.production
+```
+
+Edit the environment files with your real credentials:
 ```env
 DB_HOST=localhost
 DB_PORT=5432
@@ -98,6 +105,12 @@ JWT_EXPIRATION=7d
 PORT=3000
 NODE_ENV=development
 ```
+
+Load order for configuration files is:
+1. `.env.<NODE_ENV>.local`
+2. `.env.<NODE_ENV>`
+3. `.env.local`
+4. `.env`
 
 3. Create the database:
 ```bash

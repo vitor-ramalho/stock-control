@@ -171,7 +171,9 @@ export class BackofficeService {
   }
 
   private async ensureTenantExists(tenantId: string) {
-    const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
+    const tenant = await this.tenantRepository.findOne({
+      where: { id: tenantId },
+    });
 
     if (!tenant) {
       throw new NotFoundException(`Tenant with ID ${tenantId} not found`);

@@ -16,6 +16,7 @@ import { ArrowLeft } from 'lucide-react';
 const loginSchema = z.object({
   email: z.string().email('E-mail inválido'),
   password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
+  tenantSlug: z.string().optional(),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -29,11 +30,15 @@ export default function LoginPage() {
     defaultValues: {
       email: '',
       password: '',
+      tenantSlug: '',
     },
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    await loginMutation.mutateAsync(data);
+    await loginMutation.mutateAsync({
+      ...data,
+      tenantSlug: data.tenantSlug?.trim().toLowerCase() || undefined,
+    });
     router.push('/dashboard');
   };
 
@@ -90,6 +95,23 @@ export default function LoginPage() {
                         placeholder="••••••"
                         type="password"
                         autoComplete="current-password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="tenantSlug"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Identificador da Empresa (opcional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="minha-loja"
+                        autoComplete="organization"
                         {...field}
                       />
                     </FormControl>

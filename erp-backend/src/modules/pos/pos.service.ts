@@ -34,6 +34,9 @@ import {
   EntryType,
 } from '../financial-entry/entities/financial-entry.entity';
 import { Customer } from '../customers/entities/customer.entity';
+import { Establishment } from '../fiscal-config/entities/establishment.entity';
+import { FiscalDocumentModel, FiscalEnvironment } from '../fiscal-config/enums/fiscal.enums';
+import { FiscalDocumentsService } from '../fiscal-documents/fiscal-documents.service';
 
 @Injectable()
 export class PosService {
@@ -46,8 +49,11 @@ export class PosService {
     private productRepository: Repository<Product>,
     @InjectRepository(CashRegister)
     private cashRegisterRepository: Repository<CashRegister>,
+    @InjectRepository(Establishment)
+    private establishmentRepository: Repository<Establishment>,
     private stockService: StockService,
     private financialEntryService: FinancialEntryService,
+    private readonly fiscalDocumentsService: FiscalDocumentsService,
     private dataSource: DataSource,
   ) {}
 
@@ -210,6 +216,8 @@ export class PosService {
       `Sale #${saleId} - ${paymentMethod}`,
       paymentMethod,
     );
+
+    await this.triggerAutoFiscalEmission(closedSale.id, tenantId, sale.userId);
 
     return closedSale;
   }
@@ -458,7 +466,7 @@ export class PosService {
           ? amountReceived - total
           : undefined;
 
-      return {
+      const checkoutResult = {
         saleId: closedSale.id,
         receiptNumber: closedSale.id.substring(0, 8).toUpperCase(),
         total,
@@ -471,6 +479,10 @@ export class PosService {
         customerName,
         customerId: customer ? customer.id : undefined,
       };
+
+      await this.triggerAutoFiscalEmission(closedSale.id, tenantId, userId);
+
+      return checkoutResult;
     });
   }
 
@@ -488,6 +500,42 @@ export class PosService {
     const total = items.reduce((sum, item) => sum + Number(item.subtotal), 0);
 
     await this.saleRepository.update({ id: saleId, tenantId }, { total });
+  }
+
+  private async triggerAutoFiscalEmission(
+    saleId: string,
+    tenantId: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      const existingDocument = await this.fiscalDocumentsService.getBySaleId(tenantId, saleId);
+      if (existingDocument) {
+        return;
+      }
+
+      const establishment = await this.establishmentRepository.findOne({
+        where: { tenantId, isActive: true },
+        order: { createdAt: 'ASC' },
+      });
+
+      if (!establishment) {
+        return;
+      }
+
+      await this.fiscalDocumentsService.requestEmissionFromSale(
+        tenantId,
+        userId,
+        {
+          saleId,
+          establishmentId: establishment.id,
+          documentModel: FiscalDocumentModel.NFCE_65,
+          environment: FiscalEnvironment.HOMOLOGATION,
+        },
+        `sale:${saleId}:nfce:homologation`,
+      );
+    } catch (error) {
+      console.warn(`[POS] Automatic fiscal emission failed for sale ${saleId}`, error);
+    }
   }
 
   /**

@@ -204,6 +204,7 @@ export interface CashReport {
 export interface LoginCredentials {
   email: string;
   password: string;
+  tenantSlug?: string;
 }
 
 export interface AuthResponse {
@@ -291,10 +292,235 @@ export interface CustomerFormData {
   isActive?: boolean;
 }
 
+export interface CreateUserFormData {
+  name: string;
+  email: string;
+  password: string;
+  role?: 'admin' | 'manager' | 'cashier' | 'user';
+}
+
+export interface UpdateUserFormData {
+  name?: string;
+  email?: string;
+  password?: string;
+  role?: 'admin' | 'manager' | 'cashier' | 'user';
+  isActive?: boolean;
+}
+
 // Cart item for POS
 export interface CartItem {
   product: Product;
   quantity: number;
   unitPrice: number;
   subtotal: number;
+}
+
+export interface Establishment {
+  id: string;
+  tenantId: string;
+  legalName: string;
+  tradeName?: string | null;
+  cnpj: string;
+  stateCode?: string | null;
+  cityIbgeCode?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EstablishmentFormData {
+  legalName: string;
+  tradeName?: string;
+  cnpj: string;
+  stateCode: string;
+  cityIbgeCode: string;
+}
+
+export interface FiscalReadinessItem {
+  documentModel: 'NFE_55' | 'NFCE_65';
+  environment: 'HOMOLOGATION' | 'PRODUCTION';
+  status:
+    | 'INCOMPLETE'
+    | 'PENDING_REVIEW'
+    | 'READY_FOR_HOMOLOGATION'
+    | 'HOMOLOGATION_IN_PROGRESS'
+    | 'READY_FOR_PRODUCTION'
+    | 'BLOCKED';
+  pendingItems: string[];
+  canProceed: boolean;
+  reviewedByUserId?: string | null;
+  reviewedAt?: string | null;
+}
+
+export interface SecureFileUploadResult {
+  storageKey: string;
+  mimeType: string;
+  size: number;
+}
+
+export interface ReplaceCertificatePayload {
+  certificateType: 'A1' | 'A3';
+  holderName: string;
+  holderCnpj?: string;
+  issuer?: string;
+  validFrom?: string;
+  validTo?: string;
+  secureFileRef: string;
+  passphrase: string;
+}
+
+export interface CertificateMetadata {
+  id: string;
+  certificateType: 'A1' | 'A3';
+  holderName: string;
+  holderCnpj?: string | null;
+  issuer?: string | null;
+  validFrom?: string | null;
+  validTo?: string | null;
+  secureFileRef: string;
+  validationStatus: 'NOT_VALIDATED' | 'VALID' | 'INVALID' | 'EXPIRED';
+  status:
+    | 'NOT_CONFIGURED'
+    | 'CONFIGURED'
+    | 'PENDING_VALIDATION'
+    | 'VALIDATED'
+    | 'INVALID'
+    | 'REPLACED';
+  isCurrent: boolean;
+  createdAt: string;
+}
+
+export interface ReplaceCscPayload {
+  cscId: string;
+  cscValue: string;
+  environment: 'HOMOLOGATION' | 'PRODUCTION';
+}
+
+export interface CscMetadata {
+  id: string;
+  cscId: string;
+  environment: 'HOMOLOGATION' | 'PRODUCTION';
+  validationStatus: 'NOT_VALIDATED' | 'VALID' | 'INVALID' | 'EXPIRED';
+  status:
+    | 'NOT_CONFIGURED'
+    | 'CONFIGURED'
+    | 'PENDING_VALIDATION'
+    | 'VALIDATED'
+    | 'INVALID'
+    | 'REPLACED';
+  configuredAt?: string | null;
+  isCurrent: boolean;
+  createdAt: string;
+}
+
+export interface FiscalAttachmentPayload {
+  attachmentType:
+    | 'COMPANY_REGISTRATION'
+    | 'STATE_REGISTRATION_PROOF'
+    | 'MUNICIPAL_REGISTRATION_PROOF'
+    | 'CREDENCIAMENTO_EVIDENCE'
+    | 'CERTIFICATE_OWNERSHIP'
+    | 'OTHER';
+  originalFileName: string;
+  storageKey: string;
+  mimeType?: string;
+  description?: string;
+}
+
+export interface FiscalAttachmentMetadata {
+  id: string;
+  attachmentType: FiscalAttachmentPayload['attachmentType'];
+  originalFileName: string;
+  storageKey: string;
+  mimeType?: string | null;
+  description?: string | null;
+  uploadedByUserId: string;
+  uploadedAt: string;
+  createdAt: string;
+}
+
+export interface FiscalDocument {
+  id: string;
+  tenantId: string;
+  establishmentId: string;
+  saleId?: string | null;
+  documentModel: 'NFE_55' | 'NFCE_65';
+  environment: 'HOMOLOGATION' | 'PRODUCTION';
+  series: number;
+  number: string;
+  accessKey?: string | null;
+  state:
+    | 'PREPARED'
+    | 'QUEUED'
+    | 'TRANSMITTING'
+    | 'UNKNOWN_RESULT'
+    | 'AUTHORIZED'
+    | 'REJECTED'
+    | 'CONTINGENCY'
+    | 'CANCEL_REQUESTED'
+    | 'CANCELED'
+    | 'VOID_REQUESTED'
+    | 'VOIDED'
+    | 'TECHNICAL_FAILURE';
+  protocolNumber?: string | null;
+  rejectionCode?: string | null;
+  rejectionReason?: string | null;
+  authorizedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FiscalEvent {
+  id: string;
+  eventType:
+    | 'EMISSION_REQUESTED'
+    | 'CANCEL_REQUESTED'
+    | 'VOID_REQUESTED'
+    | 'TRANSMISSION_RESULT';
+  status: 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED' | 'REQUIRES_MANUAL_ACTION';
+  payload?: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface FiscalQueueItem {
+  id: string;
+  tenantId: string;
+  aggregateType: string;
+  aggregateId: string;
+  operation: 'EMIT' | 'CANCEL' | 'VOID' | 'QUERY';
+  payload?: Record<string, unknown> | null;
+  status: 'PENDING' | 'PROCESSING' | 'FAILED' | 'REQUIRES_MANUAL_ACTION' | 'SUCCEEDED';
+  attempts: number;
+  nextAttemptAt?: string | null;
+  processedAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type FiscalTransmissionMode = 'SEFAZ' | 'MOCK';
+
+export interface FiscalRecoveryResult {
+  dryRun: boolean;
+  mode: FiscalTransmissionMode;
+  documentsFound: number;
+  documentsRecovered: number;
+  queueItemsReset: number;
+  documentIds: string[];
+}
+
+export interface FiscalTransmissionAttempt {
+  id: string;
+  operation: 'EMIT' | 'CANCEL' | 'VOID' | 'QUERY';
+  transportStatus?: string | null;
+  fiscalStatusCode?: string | null;
+  fiscalReason?: string | null;
+  createdAt: string;
+}
+
+export interface FiscalStateHistoryEntry {
+  id: string;
+  fromState?: FiscalDocument['state'] | null;
+  toState: FiscalDocument['state'];
+  reason: string;
+  createdAt: string;
 }

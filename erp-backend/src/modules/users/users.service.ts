@@ -74,6 +74,12 @@ export class UsersService {
     });
   }
 
+  async findManyByEmail(email: string): Promise<User[]> {
+    return this.userRepository.find({
+      where: { email },
+    });
+  }
+
   async update(
     id: string,
     updateUserDto: UpdateUserDto,

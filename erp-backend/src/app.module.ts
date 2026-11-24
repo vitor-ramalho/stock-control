@@ -14,12 +14,18 @@ import { PosModule } from './modules/pos/pos.module';
 import { BackofficeModule } from './modules/backoffice/backoffice.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { FiscalConfigModule } from './modules/fiscal-config/fiscal-config.module';
+import { FiscalDocumentsModule } from './modules/fiscal-documents/fiscal-documents.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
+
+const nodeEnv = process.env.NODE_ENV || 'development';
+const envFilePath = [`.env.${nodeEnv}.local`, `.env.${nodeEnv}`, '.env.local', '.env'];
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -47,6 +53,8 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
     BackofficeModule,
     CustomersModule,
     ReportsModule,
+    FiscalConfigModule,
+    FiscalDocumentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -8,6 +8,8 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { User, UserRole } from '../users/entities/user.entity';
+import { CreateUserDto } from '../users/dto/create-user.dto';
+import { AccessTokenPayload } from '../../common/interfaces/acess-token.interface';
 
 @Injectable()
 export class AuthService {
@@ -18,32 +20,27 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  // Legacy method - not used. Use publicRegister instead
-  // async register(registerDto: RegisterDto, tenantId: string) {
-  //   // This method is not compatible with the new RegisterDto structure
-  //   // Use publicRegister for company + user registration
-  // }
-
   async publicRegister(registerDto: RegisterDto) {
     // Create tenant first (inactive by default)
-    const slug = registerDto.company.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    
+    const slug = registerDto.company.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-');
+
     const tenant = await this.tenantService.create({
       name: registerDto.company.name,
       slug: slug,
       isActive: false, // Tenant starts inactive, must be activated by superadmin
     });
 
+    const createUserDto: CreateUserDto = {
+      email: registerDto.user.email,
+      password: registerDto.user.password,
+      name: registerDto.user.fullName,
+      role: UserRole.ADMIN,
+    };
+
     // Create admin user for the tenant
-    const user = await this.usersService.create(
-      {
-        email: registerDto.user.email,
-        password: registerDto.user.password,
-        name: registerDto.user.fullName,
-        role: 'admin', // First user is always admin
-      } as any,
-      tenant.id,
-    );
+    const user = await this.usersService.create(createUserDto, tenant.id);
 
     const tokens = this.generateTokens(user);
 
@@ -65,8 +62,24 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    // Find user by email only (tenantId not required for login)
-    const user = await this.usersService.findByEmailOnly(loginDto.email);
+    let user: User | null = null;
+
+    const tenantSlug = loginDto.tenantSlug?.trim().toLowerCase();
+    if (tenantSlug) {
+      try {
+        const tenant = await this.tenantService.findBySlug(tenantSlug);
+        user = await this.usersService.findByEmail(loginDto.email, tenant.id);
+      } catch {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+    } else {
+      const users = await this.usersService.findManyByEmail(loginDto.email);
+
+      // Without tenant context, login is allowed only when the email maps to a single account.
+      if (users.length === 1) {
+        user = users[0];
+      }
+    }
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -111,9 +124,12 @@ export class AuthService {
 
   async refreshToken(refreshTokenDto: RefreshTokenDto) {
     try {
-      const payload = this.jwtService.verify(refreshTokenDto.refresh_token, {
-        secret: this.configService.get('JWT_SECRET'),
-      });
+      const payload = this.jwtService.verify<AccessTokenPayload>(
+        refreshTokenDto.refresh_token,
+        {
+          secret: this.configService.get('JWT_SECRET'),
+        },
+      );
 
       const user = await this.usersService.findOne(
         payload.sub,
@@ -125,7 +141,7 @@ export class AuthService {
       }
 
       return this.generateTokens(user);
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
   }

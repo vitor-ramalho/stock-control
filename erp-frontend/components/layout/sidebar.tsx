@@ -14,7 +14,9 @@ import {
   LogOut,
   FileText,
   Users,
+  UserPlus,
   Shield,
+  Building,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -31,6 +33,8 @@ const navigation = [
   { name: 'Vendas', href: '/sales', icon: ShoppingCart, visible: (p: ReturnType<typeof usePermissions>) => p.canAccessSales },
   { name: 'PDV', href: '/pos', icon: Monitor, visible: (p: ReturnType<typeof usePermissions>) => p.canAccessPOS },
   { name: 'Clientes', href: '/customers', icon: Users, visible: (p: ReturnType<typeof usePermissions>) => p.canAccessCustomers },
+  { name: 'Fiscal', href: '/fiscal', icon: Building, visible: (p: ReturnType<typeof usePermissions>) => p.canManageFiscalConfig },
+  { name: 'Usuarios', href: '/users', icon: UserPlus, visible: (p: ReturnType<typeof usePermissions>) => p.canManageUsers },
   { name: 'Relatórios', href: '/reports', icon: FileText, visible: (p: ReturnType<typeof usePermissions>) => p.canAccessReports },
 ];
 

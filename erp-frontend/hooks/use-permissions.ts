@@ -18,6 +18,7 @@ export function usePermissions() {
     canAccessPOS: hasRole(['admin', 'manager', 'cashier']),
     canAccessCustomers: hasRole(['admin', 'manager', 'cashier']),
     canAccessReports: hasRole(['admin', 'manager']),
-    canManageUsers: hasRole(['admin', 'manager']),
+    canManageUsers: hasRole(['admin']),
+    canManageFiscalConfig: hasRole(['admin', 'superadmin']),
   };
 }

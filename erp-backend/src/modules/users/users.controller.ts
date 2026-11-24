@@ -29,12 +29,13 @@ export class UsersController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN)
   findAll(@TenantId() tenantId: string) {
     return this.usersService.findAll(tenantId);
   }
 
   @Get(':id')
+  @Roles(UserRole.ADMIN)
   findOne(@Param('id') id: string, @TenantId() tenantId: string) {
     return this.usersService.findOne(id, tenantId);
   }
